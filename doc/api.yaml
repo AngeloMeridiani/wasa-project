@@ -1,273 +1,620 @@
-openapi: 3.0.0
-servers:
-  - url: "http://localhost:3000"
+openapi: 3.0.3
 info:
-  title: Fantastic Coffee (decaffeinated)
-  description: Fantastic Coffee (decaffeinated), the skeleton project for Web and Software architecture course
-  version: 1.0.0
+  title: Wasa-Project
+  description: |-
+    Wasa Project OpenAPI document.
+  version: "1"
+
+security:
+  - bearerAuth: []
+
 paths:
-  /status:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-    get:
-      tags: ["General"]
-      operationId: getStatusMessage
-      summary: Get status message for the user about issues / updates
-      description: |-
-        The response contains a status message meant for the user. It might
-        contains information about current technical issues, update messages
-        or general information.
-      responses:
-        "200":
-          description: Status message available
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StatusInfo"
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-
-  /:
-    get:
-      tags: ["Group 1"]
-      operationId: index
-      summary: Get an index
-      description: |-
-        This is an example of an index API description
-      responses:
-        "200":
-          description: Successful
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-  /context:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
+  /session:
     post:
-      tags: ["Group 1"]
-      operationId: getContext
-      summary: Another API example
+      security: 
+        - bearerAuth: []
+      tags: ["Login"]
+      summary: Logs in the user
       description: |-
-        Example description 2
-      responses:
-        "200":
-          description: Request ok
-          headers:
-            X-Access-Token:
-              description: Access token for authenticated requests
-              schema: { type: string }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-  /authenticated:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-    get:
-      tags: ["Group 2"]
-      operationId: getAuthenticatedExample
-      summary: Get an endpoint with authentication
-      description: |-
-        Get an endpoint with auth
-      security:
-        - LegacyAuth: []
-        - AppToken: []
-      responses:
-        "200":
-          description: Logout successful
-        "500": { $ref: "#/components/responses/InternalServerError" }
-
-  /pictures/{cat}:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-      - $ref: "#/components/parameters/cat"
-    get:
-      tags: ["Cat pictures"]
-      operationId: getCatFromPicture
-      summary: Example of a parameter in URL
-      description: |-
-        Example of a parameter in URL
-      security:
-        - LegacyAuth: []
-      responses:
-        "200":
-          description: Student picture found
-          content:
-            image/png:
-              schema:
-                type: string
-                format: binary
-              example: Picture binary file
-        "404":
-          description: Student picture not found
-        "500": { $ref: "#/components/responses/InternalServerError" }
-
-
-  /autofeeder/{cat}:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-      - $ref: "#/components/parameters/cat"
-    put:
-      tags: ["Autofeeder"]
-      operationId: createCatAutofeeder
-      summary: Example of PUT operation
-      security:
-        - LegacyAuth: []
-      responses:
-        "200":
-          description: Auto feed enabled
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-    delete:
-      tags: ["Autofeeder"]
-      operationId: deleteCatAutofeeder
-      summary: Example of DELETE operation
-      security:
-        - LegacyAuth: []
-      responses:
-        "200":
-          description: Auto feed disabled
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "500": { $ref: "#/components/responses/InternalServerError" }
-
-  /session/login:
-    parameters:
-      - $ref: "#/components/parameters/XAppBuild"
-      - $ref: "#/components/parameters/XAppVersion"
-      - $ref: "#/components/parameters/XAppLanguage"
-      - $ref: "#/components/parameters/XAppPlatform"
-    post:
-      tags: ["Session management"]
-      operationId: login
-      summary: Log-in into system
-      description: |-
-        Perform a log-in action using username and password credentials.
-        Returns a token which can be used in authenticated requests.
+        If the user does not exist, it will be created,
+        and an identifier is returned.
+        If the user exists, the user identifier is returned.
+      operationId: doLogin
       requestBody:
+        description: User details
         content:
-          application/x-www-form-urlencoded:
+          application/json:
             schema:
               type: object
               properties:
-                userid:
+                name:
                   type: string
-                  pattern: '^[a-zA-Z0-9]+$'
+                  example: Maria
+                  pattern: 'ˆ.*?$'
                   minLength: 3
-                  maxLength: 255
-                password:
-                  type: string
-                  pattern: '^.*?$'
-                  minLength: 8
-                  maxLength: 255
+                  maxLength: 16
+        required: true
       responses:
-        "200":
-          description: Login successful
-          headers:
-            X-Access-Token:
-              description: Access token for authenticated requests
-              schema: { type: string }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "403":
-          description: Login failed
-          headers:
-            X-Message:
-              description: Error message
-              schema: { type: string }
-        "500": { $ref: "#/components/responses/InternalServerError" }
+        '201':
+          description: User log-in action successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  identifier:
+                    # change here if you decide to use an integer
+                    # or any other type of identifier
+                    type: string
+                    example: "abcdef012345"
 
+  /users/{user-id}:
+    put:
+      tags: ["User name"]
+      summary: Set User Name
+      description : |- 
+        Sets the username. 
+        Overwrites the previous one if it already exists.
+      operationId: setMyUserName
+      parameters: 
+        - name: user-id
+          in: path
+          description: Identifier of the user to update
+          required: true
+          schema:
+            type: string
+            example: "abcdef012345"
+      requestBody:
+        description: New user name
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  example: Maria
+                  pattern: '^.*?$'
+                  minLength: 3
+                  maxLength: 16
+      responses:
+        '200':
+          description: User name updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  identifier:
+                    type: string
+                    example: "abcdef012345"
+                  name:
+                    type: string
+                    example: Maria
+        '400':
+          description: Invalid request / validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /chats:
+    get:
+      security:
+        - brToken: []
+      tags: ["User conversations"]
+      summary: Get User Conversations
+      description: |-
+        Return a list of the conversations belonging to the authenticated user.
+        The user identity is derived from the Bearer Token.
+      operationId: getMyConversations
+      parameters:
+        - name: num-conversations
+          in: query
+          description: "Limit of max conversations returned"
+          required: false  
+          schema: 
+            type: integer
+            format: int32
+            default: 10
+            minimum: 1
+            maximum: 100
+
+      responses:  
+        "200":
+          description: Successfully returned list of conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: 
+                      type: string
+                    title:
+                      type: string
+        '400':
+          description: Invalid request (e.g. limit parameters error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Token missing or invalid
+          
+  /chats/{chat-id}:
+    get:
+      tags: ["User conversations"]
+      summary: Get current Conversation
+      description: |-
+        Return the current conversation...
+      operationId: getConversation
+      parameters:
+        - name: chat-id
+          in: path
+          description: chat-id
+          required: true
+          schema: 
+            type: string
+            example: "abcdef012345"
+        - name: limit
+          in: query
+          description: maximum number of messages to return
+          required: false
+          schema:   
+            type: integer
+            format: int32
+            default: 10
+            minimum: 1
+            maximum: 100
+      responses:  
+        '200':  
+          description: Conversation details and messages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: "abcdef012345"
+                  topic:
+                    type: string
+                    example: "Support Request #42"
+                  createdAt:
+                    type: string
+                    format: date-time
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        content:
+                          type: string
+                        sender:
+                          type: string
+                          enum: ["user", "bot", "agent"]
+                        timestamp:
+                          type: string
+                          format: date-time
+
+        '400':
+          description: Invalid request (e.g. invalid format for chat-id)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '401':
+          description: Unauthorized - Token missing
+        
+        '403':
+          description: Forbidden - User does not belong to this chat
+
+        '404':
+          description: Conversation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /messages/{message-id}:
+    put: 
+      tags: ["User conversations"]
+      summary: Send or update a message
+      description: |-
+        Permette di inviare un messaggio con un ID specifico o aggiornarlo se esiste già.
+      operationId: sendMessage
+      parameters: 
+        - $ref: '#/components/parameters/MessageId'
+      requestBody: 
+        description: Message payload to send
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  example: "AHAHAHAH"
+                username:
+                  type: string
+                  example: "Maria"
+
+      responses: 
+        '200':
+          description: Message sent or updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Chat or message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'   
+
+  /groups/{group-id}:
+    put:
+      tags: ["Groups"]
+      summary: Set Group Name
+      description: Set the group name
+      operationId: setGroupName
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        description: Group Name set or updated
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Programmazione Web"
+                username:
+                  type: string
+                  example: "Maria"
+  
+  /groups/{group-id}/photo:
+    put:
+
+    delete:
+
+  /groups/{group-id}/members:
+    post:
+      tags: ["Groups"]
+      summary: Add to group
+      description: Add a member to group
+      operationId: addToGroup 
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:
+        description: L'ID dell'utente da aggiungere al gruppo
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  type: string
+                  description: L'ID dell'utente da aggiungere
+                  example: "abcdef012345"
+      responses:
+        '200':
+          description: Membro aggiunto con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group' 
+        '404':
+          description: Gruppo o utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflitto - L'utente è già membro di questo gruppo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: ["Groups"]
+      summary: Leave Group
+      description: Leave the current group
+      operationId: leaveGroup
+      parameters:
+        - $ref: '#/components/parameters/GroupId'
+      responses:
+        '200':
+          description: User left group successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: User is not a member of this group
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /messages/{message-id}/forward:
+    post:
+      tags: ["Messages"]
+      summary: Forward Message
+      description: Forward a message from a chat to another
+      operationId: forwardMessage
+      security:
+        - brToken: []
+      parameters:
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:
+        description: Destination chat and forwarding options
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetChatId
+              properties:
+                targetChatId:
+                  type: string
+                  description: Identifier of the destination chat
+                  example: "chat0123456"
+                keepSender:
+                  type: boolean
+                  description: Preserve original sender when forwarding
+                  default: true
+      responses:
+        '200':
+          description: Message forwarded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  forwardedMessageId:
+                    type: string
+                    example: "msg987654"
+                  message:
+                    $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid request / validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Token missing or invalid
+        '404':
+          description: Message or target chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conflict - Message already exists in target chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      
+  /message/{message-id}/comment:
+    post:
+      tags: ["Messages"]
+      summary: Comment Message
+      description: Add a comment to a message
+      operationId: commentMessage
+      parameters:
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:
+        description: The comment payload
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - commentId
+                - text
+              properties: 
+                commentId:
+                  type: string
+                  description: Comment identifier
+                  example: "comment01233456"
+                text:
+                  type: string
+                  description: "Content of the comment"
+                  example: "AHAHAHAH"
+                  minLength: 1
+      responses:
+        '201':  
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  commentId:
+                    type: string
+                    example: "comment01233456"
+                  createdAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid input 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags: ["Messages"]
+      summary: Uncomment message
+      description: Remove a comment from a message
+      operationId: uncommentMessage
+      parameters: 
+        - $ref: '#/components/parameters/MessageId'
+      responses:
+        '200':
+          description: Comment deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '404':
+          description: Message or comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
 components:
+  securitySchemes:
+    bearerAuth: 
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
+
   schemas:
-    StatusInfo:
-      title: Status Info
+    User:
       type: object
       properties:
-        status:
+        identifier:
           type: string
-          enum:
-            - info
-            - warning
-            - critical
-            - ""
-        title: { type: string }
-        message: { type: string }
-        url: { type: string }
+          example: "abcdef012345"
+        name:
+          type: string
+          example: "Maria"
+      required:
+        - identifier
+        - name
+    Message:  
+      type: object
+      properties:
+        messageId:
+          type: string
+          example: "msg01234567"
+        text:
+          type: string
+          example: "Ciao! Come stai?"
+        user:
+          type: string
+          example: "MarioRossi"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - messageId
+        - text
+        - user
+        - createdAt
+        - updateAt
+    
+    Group:
+      type: object
+      properties:
+        groupId:
+          type: string
+          example: "group012345"
+        groupName:
+          type: string
+          example: "Programmazione Web"
+        description:
+          type: string
+          example: "Gruppo relativo al corso di Programmazione Web"
+        members:
+          type: array
+          items:
+            type: string
+          example: ["abcdef012345", "abcdef012346"]
+        createdAt:
+          type: string
+          format: date-time
 
-  responses:
-    Unauthorized:
-      description: The access token is missing or it's expired
-    BadRequest:
-      description: The request was not compliant with the documentation (eg. missing fields, etc)
-    InternalServerError:
-      description: The server encountered an internal error. Further info in server logs
-
-  securitySchemes:
-    LegacyAuth:
-      type: apiKey
-      in: header
-      name: X-App-Token
-      description: |-
-        App session token value. This value is sent by the server in the login
-        and session refresh APIs.
-
-  parameters:
-    XAppVersion:
-      schema:
-        type: string
-        pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'
-        minLength: 1
-        maxLength: 10
-      name: X-App-Version
-      in: header
-      required: true
-      description: App human readable version ("semantic version" format)
-      allowEmptyValue: false
-    XAppBuild:
-      schema: { type: integer }
-      name: X-App-Build
-      in: header
-      required: true
-      description: App build number
-      allowEmptyValue: false
-    XAppLanguage:
-      schema:
-        type: string
-        pattern: '^[a-z]{2}([-_][A-Z]{2})?$'
-        minLength: 2
-        maxLength: 5
-      name: X-App-Language
-      in: header
-      required: true
-      description: App language in ISO 639-1 format
-      allowEmptyValue: false
-    XAppPlatform:
-      schema:
-        type: string
-        enum: [ios, android]
-      name: X-App-Platform
-      in: header
-      required: true
-      description: App operating system / platform
-      allowEmptyValue: false
-    cat:
-      schema:
-        type: string
-        pattern: '^[a-zA-Z]+$'
-        minLength: 3
-        maxLength: 10
-      name: cat
+    Error:
+      type: object
+      properties: 
+        error-id:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: User not found
+    
+  parameters: 
+    UserId:
+      name: user-id
       in: path
+      description: "User Identifier"
       required: true
-      description: Cat
-      allowEmptyValue: false
+      schema:
+        type: string
+        example: "abcdef012345"
+    GroupId:
+      name: group-id
+      in: path
+      description: "Group Identifier"
+      required: true
+      schema:
+        type: string
+        example: "group012345"
+    ChatId:
+      name: chat-id
+      in: path
+      description: "Chat Identifier"
+      required: true
+      schema:
+        type: string
+        example: "chat012345"
+    MessageId:
+      name: message-id
+      in: path
+      description: "Message Identifier"
+      required: true
+      schema:
+        type: string
+        example: "msg01234567"
+
