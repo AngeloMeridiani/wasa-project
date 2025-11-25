@@ -300,12 +300,12 @@ paths:
   /messages:
     post: 
       tags: ["Messages"]
-      summary: Send  a message
+      summary: Invia un messaggio
       description: |-
         Permette di inviare un messaggio con un ID specifico.
       operationId: sendMessage
       requestBody: 
-        description: Message payload to send
+        description: Contenuto del messaggio da inviare
         required: true
         content:
           application/json:
@@ -349,13 +349,13 @@ paths:
       - $ref: '#/components/parameters/MessageId'
     put: 
       tags: ["Messages"]
-      summary: Update a message
+      summary: Modifica un messaggio
       description: |-
         Permette di Modificare un messaggio con un ID specifico.
       operationId: updateMessage
       
       requestBody: 
-        description: Message payload to update
+        description: Contenuto del messaggio da modificare
         required: true
         content:
           application/json:
@@ -544,30 +544,28 @@ paths:
             schema:
               type: object
               required:
-                - text
+                - emoji
+                - sender
               properties: 
-                text:
+                emoji:
                   type: string
-                  description: "Content of the comment"
-                  example: "AHAHAHAH"
+                  description: emoji inviata
                   minLength: 1
                   maxLength: 300
+                sender: 
+                  type: string
+                  description: L'ID dell'utente che ha lasciato il commento
+                  example: "user123456"
+                  pattern: '^[a-zA-Z0-9]+$'
+                  minLength: 5
+                  maxLength: 10
       responses:
         '201':  
           description: Comment created successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  commentId:
-                    type: string
-                    description: L'ID del commento appena creato
-                    example: "comment01233456"
-                  createdAt:
-                    type: string
-                    description: Data di creazione del commento
-                    format: date-time
+                $ref: '#/components/schemas/Comment'
         '400':
           description: Invalid input 
           content:
@@ -615,15 +613,21 @@ paths:
           application/json:
             schema:
               type: object
+              description: Informazioni sul nuovo nome da sostituire
               properties:
                 name:
                   type: string
                   description: Nuovo nome del gruppo
                   example: "Programmazione Web"
+                  minLength: 1
+                  maxLength: 30
                 username:
                   type: string
                   description: Username dell'utente che effettua la modifica
                   example: "Maria"
+                  pattern: '^.*?$'
+                  minLength: 1
+                  maxLength: 16
       responses:
         '200':
           description: Nome del gruppo aggiornato con successo
@@ -668,25 +672,22 @@ paths:
               type: string
               format: binary
               description: foto in formato png
+              minLength: 1
+              maxLength: 500
           image/jpeg:
             schema:
               type: string
               format: binary
               description: foto in formato jpeg
+              minLength: 1
+              maxLength: 500
       responses:
         '200':
           description: Foto aggiornata con successo
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    description: Messaggio di esito positivo
-                    example: "Foto profilo aggiornata correttamente"
-              example:
-                message: "Foto profilo aggiornata correttamente"
+              schema: 
+                $ref: '#/components/schemas/Group'
         '400':
           description: Formato immagine non valido o file troppo grande
           content:
@@ -728,15 +729,18 @@ paths:
           application/json:
             schema:
               type: object
+              description: Informazioni sul membro da aggiungere al gruppo
               required:
                 - userId
               properties:
                 userId:
                   type: string
                   description: L'ID dell'utente da aggiungere
-                  example: "abcdef012345"
+                  example: "abcd0123"
+                  minLength: 5
+                  maxLength: 10
       responses:
-        '200':
+        '201':
           description: Membro aggiunto con successo
           content:
             application/json:
@@ -820,7 +824,7 @@ components:
         identifier:
           type: string
           description: Identificatore dell'utente
-          example: "abcdef012345"
+          example: "abcd0123"
           minLength: 5
           maxLength: 10
         name:
@@ -840,7 +844,7 @@ components:
         messageId:
           type: string
           description: Identificatore del messaggio
-          example: "msg01234567"
+          example: "msg012345"
           minLength: 5
           maxLength: 10
         state:
@@ -862,13 +866,13 @@ components:
         text:
           type: string
           description: Corpo del messaggio
-          example: "Ciao! Come stai?"
+          example: "AHAHAHAH"
           minLength: 1
           maxLength: 1000
         senderId:
           type: string
           description: Identificatore dell'utente che ha inviato il messaggio
-          example: "abcdef012345"
+          example: "abcd0123"
           minLength: 5
           maxLength: 10
         createdAt:
@@ -887,6 +891,37 @@ components:
         - createdAt
         - updatedAt
     
+    Comment:
+      type: object
+      description: |-
+        Rappresenta un commento rappresentato come emoticon
+      properties:
+        commentId:
+          type: string
+          description: L'ID del commento appena creato
+          example: "comment01233456"
+        emoji:
+          type: string
+          description: L'emoticon inviata
+          minLength: 1
+          maxLength: 300
+        senderId:
+          type: string
+          description: L'ID dell'utente che ha lasciato il commento
+          example: "user123456"
+          pattern: '^[a-zA-Z0-9]+$'
+          minLength: 5
+          maxLength: 10
+        createdAt:
+          type: string
+          description: Data di creazione del commento
+          format: date-time
+      required:
+        - commentId
+        - emoji
+        - senderId
+        - createdAt
+    
     Group:
       type: object
       description: Rappresenta un gruppo
@@ -894,7 +929,7 @@ components:
         groupId:
           type: string
           description: Identificatore del gruppo
-          example: "group012345"
+          example: "group0123"
           minLength: 5
           maxLength: 10
         groupName:
@@ -941,6 +976,7 @@ components:
           type: array
           description: Array contenente i messaggi della chat
           minItems: 0
+          maxItems: 5000
           items:
             $ref: '#/components/schemas/Message'
         createdAt:
@@ -964,7 +1000,7 @@ components:
           type: integer
           description: Identificatore dell'errore
           example: 404
-        message:
+        error:
           type: string
           description: Corpo del'errore
           example: "User not found"
@@ -972,7 +1008,7 @@ components:
           maxLength: 100
       required:
         - errorId
-        - message
+        - error
     
   parameters: 
     UserId:
