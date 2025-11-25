@@ -5,14 +5,31 @@ info:
     Wasa Project OpenAPI document.
   version: "1"
 
+servers:
+  - url: http://localhost:3000/v1
+    description: Server di sviluppo locale
+
+tags:
+  - name: Login
+    description: Gestione autenticazione
+  - name: Users
+    description: Operazioni sugli utenti
+  - name: User conversations
+    description: Recupero chat e conversazioni
+  - name: Messages
+    description: Invio e gestione messaggi
+  - name: Groups
+    description: Gestione dei gruppi
+  - name: Photo
+    description: Gestione immagini profilo e gruppi
+
 security:
   - bearerAuth: []
 
 paths:
   /session:
     post:
-      security: 
-        - bearerAuth: []
+      security: []
       tags: ["Login"]
       summary: Logs in the user
       description: |-
@@ -29,8 +46,8 @@ paths:
               properties:
                 name:
                   type: string
+                  description: Nome utente
                   example: Maria
-                  pattern: 'ˆ.*?$'
                   minLength: 3
                   maxLength: 16
         required: true
@@ -41,31 +58,34 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - identifier
+                  - token
                 properties:
                   identifier:
-                    # change here if you decide to use an integer
-                    # or any other type of identifier
                     type: string
+                    description: Identificatore utente
                     example: "abcdef012345"
+                    minLength: 5
+                    maxLength: 10
+                  token: 
+                    type: string
+                    description: Il bearer token da usare per l'autorizzazione
+                    example: "GciOiJIUzI1NiIsInR5cCI6IkpXVCJ"
+                    minLength: 30
+                    maxLength: 30
 
-  /users/{user-id}:
+  /users/{userId}:
     put:
-      tags: ["User name"]
+      tags: ["Users"]
       summary: Set User Name
       description : |- 
-        Sets the username. 
-        Overwrites the previous one if it already exists.
+        Imposta il nome utente. Sovrascrive quello precedente se esiste già.
       operationId: setMyUserName
       parameters: 
-        - name: user-id
-          in: path
-          description: Identifier of the user to update
-          required: true
-          schema:
-            type: string
-            example: "abcdef012345"
+        - $ref: '#/components/parameters/UserId'
       requestBody:
-        description: New user name
+        description: Nuovo nome utente
         required: true
         content:
           application/json:
@@ -76,32 +96,90 @@ paths:
               properties:
                 name:
                   type: string
+                  description: Nome utente
                   example: Maria
                   pattern: '^.*?$'
                   minLength: 3
                   maxLength: 16
       responses:
         '200':
-          description: User name updated successfully
+          description: Nome utente aggiornato con successo
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  identifier:
-                    type: string
-                    example: "abcdef012345"
-                  name:
-                    type: string
-                    example: Maria
+                $ref: '#/components/schemas/User'
         '400':
-          description: Invalid request / validation error
+          description: Richiesta non valida / Errore di validazione
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
-          description: User not found
+          description: Utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+  /users/{userId}/photo:
+    put:
+      tags: ["Users","Photo"]
+      summary: Set User photo
+      description: |- 
+        Aggiunge la foto profilo utente se non presente, 
+        altrimenti la aggiorna. 
+        Accetta immagini in formato PNG o JPEG.
+      operationId: setMyPhoto
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:  
+        description: L'immagine del profilo da caricare (in byte)
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+              description: foto in formato png
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+              description: foto in formato jpeg
+      responses:
+        '200':
+          description: Foto aggiornata con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Messaggio di conferma operazione
+                    example: "Foto profilo aggiornata correttamente"
+              example:
+                message: "Foto profilo aggiornata correttamente"
+        '400':
+          description: Formato immagine non valido o file troppo grande
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Non puoi modificare la foto di un altro utente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore interno durante il salvataggio dell'immagine
           content:
             application/json:
               schema:
@@ -109,18 +187,17 @@ paths:
 
   /chats:
     get:
-      security:
-        - brToken: []
       tags: ["User conversations"]
       summary: Get User Conversations
       description: |-
-        Return a list of the conversations belonging to the authenticated user.
-        The user identity is derived from the Bearer Token.
+        Restituisce una lista delle conversazioni appartenenti all'utente autenticato. 
+        La lista è ordinata in ordine cronologico inverso (dal più recente al più vecchio) basandosi sul campo 'modifiedAt'.
+        L'identità dell'utente è derivata dal Bearer Token.
       operationId: getMyConversations
       parameters:
         - name: num-conversations
           in: query
-          description: "Limit of max conversations returned"
+          description: Il numero massimo di conversazioni ritornate.
           required: false  
           schema: 
             type: integer
@@ -131,18 +208,26 @@ paths:
 
       responses:  
         "200":
-          description: Successfully returned list of conversations
+          description: Lista di conversazioni ritornata con successo
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    id: 
-                      type: string
-                    title:
-                      type: string
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    description: Lista delle conversazioni dell'utente
+                    items:
+                      type: object
+                      properties:
+                        chatId:
+                          type: string
+                          description: Identificatore univoco della conversazione
+                        title:
+                          type: string
+                          description: Titolo o argomento della conversazione
+                        lastMessage:
+                          $ref: '#/components/schemas/Message'
         '400':
           description: Invalid request (e.g. limit parameters error)
           content:
@@ -151,25 +236,23 @@ paths:
                 $ref: '#/components/schemas/Error'
         '401':
           description: Unauthorized - Token missing or invalid
+          content:                         
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
           
-  /chats/{chat-id}:
+  /chats/{chatId}:
     get:
       tags: ["User conversations"]
       summary: Get current Conversation
       description: |-
-        Return the current conversation...
+        Ritorna la conversazione corrente
       operationId: getConversation
       parameters:
-        - name: chat-id
-          in: path
-          description: chat-id
-          required: true
-          schema: 
-            type: string
-            example: "abcdef012345"
+        - $ref: '#/components/parameters/ChatId'
         - name: limit
           in: query
-          description: maximum number of messages to return
+          description: Numero massimo di messaggi da ritornare
           required: false
           schema:   
             type: integer
@@ -177,41 +260,17 @@ paths:
             default: 10
             minimum: 1
             maximum: 100
+
       responses:  
         '200':  
           description: Conversation details and messages retrieved successfully
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    example: "abcdef012345"
-                  topic:
-                    type: string
-                    example: "Support Request #42"
-                  createdAt:
-                    type: string
-                    format: date-time
-                  messages:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        content:
-                          type: string
-                        sender:
-                          type: string
-                          enum: ["user", "bot", "agent"]
-                        timestamp:
-                          type: string
-                          format: date-time
+                $ref: '#/components/schemas/Chat'
 
         '400':
-          description: Invalid request (e.g. invalid format for chat-id)
+          description: Invalid request (e.g. invalid format for chatId)
           content:
             application/json:
               schema:
@@ -219,9 +278,17 @@ paths:
 
         '401':
           description: Unauthorized - Token missing
+          content:                         
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         
         '403':
           description: Forbidden - User does not belong to this chat
+          content:                        
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
         '404':
           description: Conversation not found
@@ -230,15 +297,13 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /messages/{message-id}:
-    put: 
-      tags: ["User conversations"]
-      summary: Send or update a message
+  /messages:
+    post: 
+      tags: ["Messages"]
+      summary: Send  a message
       description: |-
-        Permette di inviare un messaggio con un ID specifico o aggiornarlo se esiste già.
+        Permette di inviare un messaggio con un ID specifico.
       operationId: sendMessage
-      parameters: 
-        - $ref: '#/components/parameters/MessageId'
       requestBody: 
         description: Message payload to send
         required: true
@@ -246,17 +311,28 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - chatId
+                - text
               properties:
+                chatId: 
+                  type: string
+                  description: |- 
+                    Identificatore della conversazione. 
+                  example: "chat012345"
+                  pattern: '^[a-zA-Z0-9]+$'
+                  minLength: 5
+                  maxLength: 10
                 text:
                   type: string
-                  example: "AHAHAHAH"
-                username:
-                  type: string
-                  example: "Maria"
-
+                  description: Contenuto testuale del messaggio
+                  pattern: '^[\s\S]*$'
+                  example: "Ciao, come stai?"
+                  minLength: 1
+                  maxLength: 1000
       responses: 
         '200':
-          description: Message sent or updated successfully
+          description: Message sent successfully
           content:
             application/json:
               schema:
@@ -266,9 +342,265 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'   
+                $ref: '#/components/schemas/Error'  
 
-  /groups/{group-id}:
+  /messages/{messageId}:
+    parameters: 
+      - $ref: '#/components/parameters/MessageId'
+    put: 
+      tags: ["Messages"]
+      summary: Update a message
+      description: |-
+        Permette di Modificare un messaggio con un ID specifico.
+      operationId: updateMessage
+      
+      requestBody: 
+        description: Message payload to update
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: Contenuto testuale del messaggio
+                  pattern: '^[\s\S]*$'
+                  example: "Ciao, come stai?"
+                  minLength: 1
+                  maxLength: 1000
+      responses: 
+        '200':
+          description: Message updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+        '404':
+          description: Chat or message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'  
+    delete:
+      tags: ["Messages"]
+      summary: Cancella il messaggio
+      description: Cancella il messaggio. Ritorna l'id del messaggio
+      operationId: deleteMessage
+      responses:
+        '200':
+          description: Messaggio cancellato con successo. Ritorna l'ID del messaggio.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messageId:
+                    type: string
+                    description: L'ID del messaggio che è stato eliminato
+                    example: "msg01234567"
+                    pattern: '^[a-zA-Z0-9]+$'
+                    minLength: 5
+                    maxLength: 10
+        '403':
+          description: Forbidden - Non hai i permessi per cancellare questo messaggio (non è tuo)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Messaggio non trovato (o già cancellato)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /messages/{messageId}/status:
+    put:
+      tags: ["Messages"]
+      summary: Aggiorna lo stato del messaggio
+      description: |-
+        Aggiorna lo stato del messaggio da ["sent" -> "received" -> "read"]
+      operationId: updateMessageStatus
+      parameters: 
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:  
+        description: Nuovo stato del messaggio
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: ["received", "read"]
+                  example: "received"
+      responses:  
+        '200':
+          description: Stato del messaggio aggionato con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - updatedAt
+                properties:
+                  updatedAt:
+                    type: string
+                    format: date-time
+                    description: Il momento in cui lo stato è stato aggionato
+        '400':
+          description: Stato non valido o transizione illegale
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Messaggio non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /messages/{messageId}/forward:
+    post:
+      tags: ["Messages"]
+      summary: Inoltra il messaggio
+      description: Inoltra il messaggio ad un'altra chat
+      operationId: forwardMessage
+      parameters:
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:
+        description: Chat di destinazione e opzioni di inoltro
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - targetChatId
+              properties:
+                targetChatId:
+                  type: string
+                  description: Identifier of the destination chat
+                  example: "chat0123456"
+                keepSender:
+                  type: boolean
+                  description: Preserve original sender when forwarding
+                  default: true
+      responses:
+        '200':
+          description: Message forwarded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    $ref: '#/components/schemas/Message'
+        '400':
+          description: Invalid request / validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Token missing or invalid
+          content:                         
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '404':
+          description: Message or target chat not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+        '409':
+          description: Conflict - Message already exists in target chat
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /messages/{messageId}/comments:
+    post:
+      tags: ["Messages"]
+      summary: Commenta un messaggio
+      description: Aggiunge un commento ad un messaggio
+      operationId: commentMessage
+      parameters: 
+        - $ref: '#/components/parameters/MessageId'
+      requestBody:
+        description: Il contenuto del commento
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties: 
+                text:
+                  type: string
+                  description: "Content of the comment"
+                  example: "AHAHAHAH"
+                  minLength: 1
+                  maxLength: 300
+      responses:
+        '201':  
+          description: Comment created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  commentId:
+                    type: string
+                    description: L'ID del commento appena creato
+                    example: "comment01233456"
+                  createdAt:
+                    type: string
+                    description: Data di creazione del commento
+                    format: date-time
+        '400':
+          description: Invalid input 
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Message not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      
+  /message/{messageId}/comments/{commentId}:
+    delete:
+      tags: ["Messages"]
+      summary: Cancella Commento
+      description: Rimuovi il commento dal messaggio
+      operationId: uncommentMessage
+      parameters: 
+        - $ref: '#/components/parameters/MessageId'
+        - $ref: '#/components/parameters/CommentId'
+      responses:
+        '204':
+          description: Comment deleted successfully      
+        '404':
+          description: Message or comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 
+
+  /groups/{groupId}:
     put:
       tags: ["Groups"]
       summary: Set Group Name
@@ -286,17 +618,102 @@ paths:
               properties:
                 name:
                   type: string
+                  description: Nuovo nome del gruppo
                   example: "Programmazione Web"
                 username:
                   type: string
+                  description: Username dell'utente che effettua la modifica
                   example: "Maria"
+      responses:
+        '200':
+          description: Nome del gruppo aggiornato con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Richiesta non valida (es. nome vuoto)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Accesso Negato - Non hai i permessi per modificare questo gruppo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Gruppo non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   
-  /groups/{group-id}/photo:
+  /groups/{groupId}/photo:
     put:
+      tags: ["Groups","Photo"]
+      summary: Set group photo
+      description: Set the group photo
+      operationId: setGroupPhoto
+      parameters: 
+        - $ref: '#/components/parameters/GroupId'
+      requestBody:  
+        description: L'immagine del profilo da caricare
+        required: true
+        content:
+          image/png:
+            schema:
+              type: string
+              format: binary
+              description: foto in formato png
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+              description: foto in formato jpeg
+      responses:
+        '200':
+          description: Foto aggiornata con successo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Messaggio di esito positivo
+                    example: "Foto profilo aggiornata correttamente"
+              example:
+                message: "Foto profilo aggiornata correttamente"
+        '400':
+          description: Formato immagine non valido o file troppo grande
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Non puoi modificare la foto di un altro utente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore interno durante il salvataggio dell'immagine
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
-    delete:
 
-  /groups/{group-id}/members:
+  /groups/{groupId}/members:
     post:
       tags: ["Groups"]
       summary: Add to group
@@ -326,24 +743,31 @@ paths:
               schema:
                 $ref: '#/components/schemas/Group' 
         '404':
-          description: Gruppo o utente non trovato
+          description: Utente o gruppo non trovato
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: Conflitto - L'utente è già membro di questo gruppo
+          description: Conflitto - L'utente è già un membro del gruppo
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+
+  /groups/{groupId}/members/{memberId}:
+  #controllo in back-end che memberId sia uguale all'ID dell'utente connesso
     delete:
       tags: ["Groups"]
       summary: Leave Group
-      description: Leave the current group
+      description: |- 
+        Lascia il gruppo corrente
+        Il `memberId` nel percorso DEVE corrispondere all'identificatore dell'utente autenticato (ricavato dal Bearer Token). 
+        Non è possibile rimuovere altri utenti.
       operationId: leaveGroup
       parameters:
         - $ref: '#/components/parameters/GroupId'
+        - $ref: '#/components/parameters/MemberId'
       responses:
         '200':
           description: User left group successfully
@@ -351,162 +775,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Group'
+        '400':
+          description: Richiesta non valida (es. ID malformati)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden - Stai cercando di rimuovere un utente diverso da te stesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '404':
-          description: Group not found
+          description: Gruppo non trovato
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: User is not a member of this group
+          description: L'utente non è un membro di questo gruppo
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /messages/{message-id}/forward:
-    post:
-      tags: ["Messages"]
-      summary: Forward Message
-      description: Forward a message from a chat to another
-      operationId: forwardMessage
-      security:
-        - brToken: []
-      parameters:
-        - $ref: '#/components/parameters/MessageId'
-      requestBody:
-        description: Destination chat and forwarding options
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - targetChatId
-              properties:
-                targetChatId:
-                  type: string
-                  description: Identifier of the destination chat
-                  example: "chat0123456"
-                keepSender:
-                  type: boolean
-                  description: Preserve original sender when forwarding
-                  default: true
-      responses:
-        '200':
-          description: Message forwarded successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  forwardedMessageId:
-                    type: string
-                    example: "msg987654"
-                  message:
-                    $ref: '#/components/schemas/Message'
-        '400':
-          description: Invalid request / validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized - Token missing or invalid
-        '404':
-          description: Message or target chat not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '409':
-          description: Conflict - Message already exists in target chat
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-      
-  /message/{message-id}/comment:
-    post:
-      tags: ["Messages"]
-      summary: Comment Message
-      description: Add a comment to a message
-      operationId: commentMessage
-      parameters:
-        - $ref: '#/components/parameters/MessageId'
-      requestBody:
-        description: The comment payload
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - commentId
-                - text
-              properties: 
-                commentId:
-                  type: string
-                  description: Comment identifier
-                  example: "comment01233456"
-                text:
-                  type: string
-                  description: "Content of the comment"
-                  example: "AHAHAHAH"
-                  minLength: 1
-      responses:
-        '201':  
-          description: Comment created successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-                  commentId:
-                    type: string
-                    example: "comment01233456"
-                  createdAt:
-                    type: string
-                    format: date-time
-        '400':
-          description: Invalid input 
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Message not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    delete:
-      tags: ["Messages"]
-      summary: Uncomment message
-      description: Remove a comment from a message
-      operationId: uncommentMessage
-      parameters: 
-        - $ref: '#/components/parameters/MessageId'
-      responses:
-        '200':
-          description: Comment deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                    example: true
-        '404':
-          description: Message or comment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
 components:
   securitySchemes:
@@ -514,107 +807,237 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT 
+      description: |-
+        Autenticazione basata su JWT. 
+        Effettua la chiamata a POST /session per ottenere il token, 
+        poi inseriscilo nell'header come: Authorization: Bearer <tuo_token>
 
   schemas:
     User:
       type: object
+      description: Rappresenta un utente
       properties:
         identifier:
           type: string
+          description: Identificatore dell'utente
           example: "abcdef012345"
+          minLength: 5
+          maxLength: 10
         name:
           type: string
+          description: Nome dell'utente
           example: "Maria"
+          minLength: 1
+          maxLength: 15
       required:
         - identifier
         - name
+
     Message:  
       type: object
+      description: Rappresenta un messaggio presente in una chat
       properties:
         messageId:
           type: string
+          description: Identificatore del messaggio
           example: "msg01234567"
+          minLength: 5
+          maxLength: 10
+        state:
+          type: string
+          enum: ["sent","received","read"]
+          description: Stato del messaggio [inviato,ricevuto,letto]
+          example: "read"
+          default: "sent"
+        contentType:
+          type: string
+          description: "Tipo di messaggio. Default: text"
+          enum: ["text", "image","audio"]
+          default: "text"
+          example: "text"
+        photoUrl:
+          type: string
+          description: "URL o ID dell'immagine (se contentType è image)"
+          example: "img_12345.jpg"
         text:
           type: string
+          description: Corpo del messaggio
           example: "Ciao! Come stai?"
-        user:
+          minLength: 1
+          maxLength: 1000
+        senderId:
           type: string
-          example: "MarioRossi"
+          description: Identificatore dell'utente che ha inviato il messaggio
+          example: "abcdef012345"
+          minLength: 5
+          maxLength: 10
         createdAt:
           type: string
+          description: Quando il messaggio è stato scritto per la prima volta
           format: date-time
         updatedAt:
           type: string
+          description: Quando il messaggio è stato modificato per l'ultima volta
           format: date-time
       required:
         - messageId
+        - state
         - text
-        - user
+        - senderId
         - createdAt
-        - updateAt
+        - updatedAt
     
     Group:
       type: object
+      description: Rappresenta un gruppo
       properties:
         groupId:
           type: string
+          description: Identificatore del gruppo
           example: "group012345"
+          minLength: 5
+          maxLength: 10
         groupName:
           type: string
+          description: Nome del gruppo
           example: "Programmazione Web"
-        description:
+          pattern: '^[\s\S]*$'
+          minLength: 1
+          maxLength: 25
+        groupDescription:
           type: string
-          example: "Gruppo relativo al corso di Programmazione Web"
+          description: Descrizione del gruppo
+          pattern: '^[\s\S]*$'
+          example: "Gruppo del corso di Programmazione Web"
+          minLength: 1
+          maxLength: 50
         members:
           type: array
+          description: Array che rappresenta tutti i membri appartenenti al gruppo
+          minItems: 1
+          maxItems: 200
           items:
-            type: string
-          example: ["abcdef012345", "abcdef012346"]
+            $ref: '#/components/schemas/User'
+          example: 
+            - identifier: "abcdef0123"
+              name: "Maria"
+            - identifier: "xyz9876543"
+              name: "Luca"
         createdAt:
           type: string
+          description: Quando il gruppo è stato creato
           format: date-time
+      required:
+        - groupId
+        - groupName
+        - members
+        - createdAt
+
+    Chat:
+      type: object
+      description: Schema che rappresenta una chat dell'utente
+      properties: 
+        messages:  
+          type: array
+          description: Array contenente i messaggi della chat
+          minItems: 0
+          items:
+            $ref: '#/components/schemas/Message'
+        createdAt:
+          type: string
+          description: Quando la chat è stata creata
+          format: date-time
+        modifiedAt:
+          type: string
+          description: Quando è stato inviato l'ultimo messaggio
+          format: date-time
+      required:
+        - messages
+        - createdAt
+        - modifiedAt
 
     Error:
       type: object
+      description: Schema che rappresenta un errore ritornato da un'operazione
       properties: 
-        error-id:
+        errorId:
           type: integer
+          description: Identificatore dell'errore
           example: 404
         message:
           type: string
-          example: User not found
+          description: Corpo del'errore
+          example: "User not found"
+          minLength: 1
+          maxLength: 100
+      required:
+        - errorId
+        - message
     
   parameters: 
     UserId:
-      name: user-id
+      name: userId
       in: path
-      description: "User Identifier"
+      description: Identificatore dell'utente
       required: true
       schema:
         type: string
-        example: "abcdef012345"
+        pattern: '^[a-zA-Z0-9]+$'
+        example: "abcdf0123"
+        minLength: 5
+        maxLength: 10
     GroupId:
-      name: group-id
+      name: groupId
       in: path
-      description: "Group Identifier"
+      description: Identificatore di un gruppo
       required: true
       schema:
         type: string
-        example: "group012345"
+        pattern: '^[a-zA-Z0-9]+$'
+        example: "group12345"
+        minLength: 5
+        maxLength: 10
+    MemberId:
+      name: memberId
+      in: path
+      description: Identificatore di un membro di un gruppo
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9]+$'
+        example: "mem1234567"
+        minLength: 5
+        maxLength: 10
     ChatId:
-      name: chat-id
+      name: chatId
       in: path
-      description: "Chat Identifier"
+      description: Identificatore della chat
       required: true
       schema:
         type: string
+        pattern: '^[a-zA-Z0-9]+$'
         example: "chat012345"
+        minLength: 5
+        maxLength: 10
     MessageId:
-      name: message-id
+      name: messageId
       in: path
-      description: "Message Identifier"
+      description: Identificatore di un messaggio
       required: true
       schema:
         type: string
-        example: "msg01234567"
-
+        pattern: '^[a-zA-Z0-9]+$'
+        example: "msg0123456"
+        minLength: 5
+        maxLength: 10
+    CommentId: 
+      name: commentId
+      in: path
+      description: Identificatore di un commento
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-zA-Z0-9]+$'
+        example: "com0123456"
+        minLength: 5
+        maxLength: 10
