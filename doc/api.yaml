@@ -140,31 +140,26 @@ paths:
         description: L'immagine del profilo da caricare (in formato binario)
         required: true
         content:
-          image/png:
+          application/json:
             schema:
-              type: string
-              format: binary
-              description: File immagine in formato PNG
-          image/jpeg:
-            schema:
-              type: string
-              format: binary
-              description: File immagine in formato JPEG
+              type: object
+              description: Oggetto contenente il link alla foto
+              required:
+                - photoUrl
+              properties:
+                photoUrl:
+                  type: string
+                  description: L'URL dell'immagine
+                  example: "img_user_1235.png"
+                  minLength: 5
+                  maxLength: 50
       responses:
         '200':
           description: Foto aggiornata con successo
           content:
             application/json:
               schema:
-                type: object
-                description: Risposta di conferma aggiornamento foto
-                properties:
-                  message:
-                    type: string
-                    description: Messaggio di conferma operazione
-                    example: "Foto profilo aggiornata correttamente"
-              example:
-                message: "Foto profilo aggiornata correttamente"
+                $ref: '#/components/schemas/User'
         '400':
           description: Formato immagine non valido o file troppo grande
           content:
@@ -195,8 +190,8 @@ paths:
       tags: ["Chats"]
       summary: Crea nuova chat
       description: |-
-        Crea una nuova conversazione privata (1-a-1) con un altro utente.
-        Se esiste già una chat attiva con questo utente, il server potrebbe restituire quella esistente.
+        Crea una nuova conversazione con un altro utente.
+        Se esiste già una chat attiva con questo utente, il server restituisce quella esistente.
       operationId: createChat
       requestBody:
         description: Dati necessari per creare la chat
@@ -213,6 +208,7 @@ paths:
                   type: string
                   description: L'identificatore dell'utente con cui vuoi iniziare la conversazione
                   example: "abcd0123"
+                  pattern: '^[a-zA-Z0-9]+$'
                   minLength: 5
                   maxLength: 10
       responses:
@@ -387,7 +383,7 @@ paths:
                   minLength: 1
                   maxLength: 1000
       responses: 
-        '200':
+        '201':
           description: Messaggio inviato con successo
           content:
             application/json:
@@ -456,7 +452,7 @@ paths:
                   messageId:
                     type: string
                     description: L'ID del messaggio che è stato eliminato
-                    example: "msg01234567"
+                    example: "msg01237"
                     pattern: '^[a-zA-Z0-9]+$'
                     minLength: 5
                     maxLength: 10
@@ -548,14 +544,10 @@ paths:
                 targetChatId:
                   type: string
                   description: Identificatore della chat di destinazione
-                  example: "chat0123456"
+                  example: "chat01234"
                   pattern: '^[a-zA-Z0-9]+$'
                   minLength: 5
                   maxLength: 10
-                keepSender:
-                  type: boolean
-                  description: Se true, mantiene il mittente originale. Se false, appare come inviato da te.
-                  default: true
       responses:
         '200':
           description: Messaggio inoltrato con successo
@@ -616,10 +608,9 @@ paths:
               properties: 
                 emoji:
                   type: string
-                  format: binary
                   description: L'emoji inviata come reazione
                   minLength: 1
-                  maxLength: 300
+                  maxLength: 4
                 sender: 
                   type: string
                   description: L'ID dell'utente che lascia il commento
@@ -665,6 +656,78 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error' 
+  /groups:
+    post:
+      tags: ["Groups"]
+      summary: Crea un nuovo gruppo
+      description: |-
+        Crea e restituisce un nuovo gruppo. 
+      operationId: createGroup
+      requestBody:  
+        description: Dati del nuovo gruppo da creare
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Dati del gruppo
+              required: 
+                - groupName
+                - userId
+              properties: 
+                groupName:
+                  type: string
+                  description: Nome visualizzato del gruppo
+                  example: "Programmazione Web"
+                  pattern: '^[\s\S]*$'
+                  minLength: 1
+                  maxLength: 25
+                groupDescription:
+                  type: string
+                  description: Descrizione o topic del gruppo
+                  pattern: '^[\s\S]*$'
+                  example: "Gruppo del corso di Programmazione Web"
+                  minLength: 1
+                  maxLength: 50
+                userId:
+                  type: string
+                  description: Identificatore dell'utente che effettua la modifica 
+                  pattern: '^[a-zA-Z0-9]+$'
+                  example: "abcdf0123"
+                  minLength: 5
+                  maxLength: 10
+      responses:
+        '201':
+          description: Gruppo creato con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '400':
+          description: Dati input non validi (es. nome mancante o formato errato)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Non autorizzato - Token mancante o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Utente creatore non trovato (l'ID specificato non esiste)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Errore interno durante la creazione del gruppo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 
   /groups/{groupId}:
     put:
@@ -681,7 +744,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: Payload per la modifica del nome del gruppo
+              description: Dati per la modifica del nome del gruppo
               properties:
                 name:
                   type: string
@@ -690,13 +753,13 @@ paths:
                   pattern: '^.*?$'
                   minLength: 1
                   maxLength: 30
-                username:
+                userId:
                   type: string
-                  description: Username dell'utente che effettua la modifica 
-                  example: "Maria"
+                  description: Identificatore dell'utente che effettua la modifica 
+                  example: "abcde1234"
                   pattern: '^.*?$'
-                  minLength: 1
-                  maxLength: 16
+                  minLength: 5
+                  maxLength: 10
       responses:
         '200':
           description: Nome del gruppo aggiornato con successo
@@ -736,20 +799,20 @@ paths:
         description: L'immagine del gruppo da caricare
         required: true
         content:
-          image/png:
+          application/json:
             schema:
-              type: string
-              format: binary
-              description: File immagine PNG
-              minLength: 1
-              maxLength: 500
-          image/jpeg:
-            schema:
-              type: string
-              format: binary
-              description: File immagine JPEG
-              minLength: 1
-              maxLength: 500
+              type: object
+              description: Oggetto contenente l'url alla foto
+              required:
+                - photoUrl
+              properties:
+                photoUrl:
+                  type: string
+                  description: L'URL dell'immagine
+                  example: "img_user_1235.png"
+                  pattern: '^img_[a-z]+_\d+\.(jpg|jpeg|png)$'
+                  minLength: 5
+                  maxLength: 50
       responses:
         '200':
           description: Foto del gruppo aggiornata con successo
@@ -836,7 +899,8 @@ paths:
       summary: Lascia il gruppo
       description: |- 
         L'utente corrente abbandona il gruppo.
-        Il `memberId` nel percorso DEVE corrispondere all'identificatore dell'utente autenticato (ricavato dal Bearer Token). 
+        Il `memberId` nel percorso DEVE corrispondere all'identificatore 
+        dell'utente autenticato (ricavato dal Bearer Token). 
       operationId: leaveGroup
       parameters:
         - $ref: '#/components/parameters/GroupId'
@@ -906,6 +970,7 @@ components:
           type: string
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."
           example: "img_user_12345.jpg"
+          pattern: ^img_[a-z]+_\d+\.(jpg|jpeg|png)$
           minLength: 5
           maxLength: 50
       required:
@@ -920,6 +985,7 @@ components:
           type: string
           description: Identificatore univoco del messaggio
           example: "msg012345"
+          pattern: '^[a-zA-Z0-9]+$'
           minLength: 5
           maxLength: 10
         state:
@@ -938,6 +1004,7 @@ components:
           type: string
           description: "ID o URL della risorsa immagine. Se null."
           example: "img_sent_12345.jpg"
+          pattern: ^img_[a-z]+_\d+\.(jpg|jpeg|png)$
           minLength: 5
           maxLength: 50
         text:
@@ -991,7 +1058,7 @@ components:
           type: string
           description: L'emoticon inviata come reazione
           minLength: 1
-          maxLength: 300
+          maxLength: 4
         senderId:
           type: string
           description: L'ID dell'utente che ha creato il commento
@@ -1057,6 +1124,7 @@ components:
           type: string
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."
           example: "img_group_12345.jpg"
+          pattern: '^img_[a-z]+_\d+\.(jpg|jpeg|png)$'
           minLength: 5
           maxLength: 50
       required:
@@ -1075,7 +1143,14 @@ components:
           minItems: 0
           maxItems: 5000
           items:
-            $ref: '#/components/schemas/Message'
+            type: string
+            description: l'id dei messaggi della chat
+            pattern: '^[a-zA-Z0-9]+$'
+            minLength: 5
+            maxLength: 10
+          example: 
+            - "abcdef0123"
+            - "xyz9876543"
         createdAt:
           type: string
           description: Data di creazione della chat
@@ -1084,6 +1159,8 @@ components:
           type: string
           description: Timestamp dell'ultimo messaggio o modifica
           format: date-time
+        lastMessage:
+          $ref: '#/components/schemas/Message'
       required:
         - messages
         - createdAt
