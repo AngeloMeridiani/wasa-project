@@ -50,6 +50,7 @@ paths:
                   type: string
                   description: Nome utente scelto
                   example: Maria
+                  pattern: '^[a-zA-Z0-9_]+$'
                   minLength: 3
                   maxLength: 16
         required: true
@@ -58,25 +59,21 @@ paths:
           description: Login effettuato con successo
           content:
             application/json:
+              example:
+                identifier: "abcdef0123"
               schema:
                 type: object
                 description: Dati della sessione creata
                 required:
                   - identifier
-                  - token
                 properties:
                   identifier:
                     type: string
                     description: Identificatore univoco dell'utente
-                    example: "abcdef012345"
-                    minLength: 5
+                    example: "abcdef0123"
+                    pattern: '^[a-zA-Z0-9]+$'
+                    minLength: 10
                     maxLength: 10
-                  token: 
-                    type: string
-                    description: Il bearer token JWT da usare per l'autorizzazione nelle chiamate successive
-                    example: "GciOiJIUzI1NiIsInR5cCI6IkpXVCJ"
-                    minLength: 30
-                    maxLength: 30
 
   /users/{userId}:
     put:
@@ -110,6 +107,10 @@ paths:
           description: Nome utente aggiornato con successo
           content:
             application/json:
+              example:
+                userId: "abcd012345"
+                name: "Maria"
+                userPhoto: "img_user_12345.jpg"
               schema:
                 $ref: '#/components/schemas/User'
         '400':
@@ -151,13 +152,18 @@ paths:
                   type: string
                   description: L'URL dell'immagine
                   example: "img_user_1235.png"
-                  minLength: 5
+                  pattern: '^[a-zA-Z0-9_]+\.(jpg|jpeg|png)$'
+                  minLength: 10
                   maxLength: 50
       responses:
         '200':
           description: Foto aggiornata con successo
           content:
             application/json:
+              example:
+                userId: "abcd012345"
+                name: "Maria"
+                userPhoto: "img_user_1235.png"
               schema:
                 $ref: '#/components/schemas/User'
         '400':
@@ -207,15 +213,19 @@ paths:
                 targetUserId:
                   type: string
                   description: L'identificatore dell'utente con cui vuoi iniziare la conversazione
-                  example: "abcd0123"
+                  example: "abcd012345"
                   pattern: '^[a-zA-Z0-9]+$'
-                  minLength: 5
+                  minLength: 10
                   maxLength: 10
       responses:
         '201':
           description: Chat creata con successo
           content:
             application/json:
+              example:
+                messages: []
+                createdAt: "2024-04-01T12:00:00Z"
+                modifiedAt: "2024-04-01T12:00:00Z"
               schema:
                 $ref: '#/components/schemas/Chat'
         '400':
@@ -260,12 +270,27 @@ paths:
           description: Lista di conversazioni ritornata con successo
           content:
             application/json:
+              example:
+                chats:
+                  - chatId: "chat012345"
+                    title: "Maria"
+                    lastMessage:
+                      messageId: "msg0123456"
+                      chatId: "chat012345"
+                      state: "sent"
+                      senderId: "abcd012345"
+                      createdAt: "2024-04-01T12:00:00Z"
+                      updatedAt: "2024-04-01T12:00:00Z"
+                      contentType: "text"
+                      text: "Ciao, come stai?"
               schema:
                 type: object
                 description: Contenitore della lista delle conversazioni
                 properties:
-                  conversations:
+                  chats:
                     type: array
+                    minItems: 1
+                    maxItems: 100
                     description: Lista delle conversazioni dell'utente
                     items:
                       type: object
@@ -317,6 +342,11 @@ paths:
           description: Dettagli della conversazione e messaggi recuperati con successo
           content:
             application/json:
+              example:
+                messages:
+                  - "msg0123456"
+                createdAt: "2024-04-01T12:00:00Z"
+                modifiedAt: "2024-04-01T12:00:00Z"
               schema:
                 $ref: '#/components/schemas/Chat'
 
@@ -373,7 +403,7 @@ paths:
                     Identificatore della conversazione di destinazione. 
                   example: "chat012345"
                   pattern: '^[a-zA-Z0-9]+$'
-                  minLength: 5
+                  minLength: 10
                   maxLength: 10
                 text:
                   type: string
@@ -387,6 +417,15 @@ paths:
           description: Messaggio inviato con successo
           content:
             application/json:
+              example:
+                messageId: "msg0123456"
+                chatId: "chat012345"
+                state: "sent"
+                senderId: "abcd012345"
+                createdAt: "2024-04-01T12:00:00Z"
+                updatedAt: "2024-04-01T12:00:00Z"
+                contentType: "text"
+                text: "Ciao, come stai?"
               schema:
                 $ref: '#/components/schemas/Message'
         '404':
@@ -426,6 +465,15 @@ paths:
           description: Messaggio aggiornato con successo
           content:
             application/json:
+              example:
+                messageId: "msg0123456"
+                chatId: "chat012345"
+                state: "sent"
+                senderId: "abcd012345"
+                createdAt: "2024-04-01T12:00:00Z"
+                updatedAt: "2024-04-01T12:10:00Z"
+                contentType: "text"
+                text: "Ciao, tutto bene?"
               schema:
                 $ref: '#/components/schemas/Message'
         '404':
@@ -444,6 +492,8 @@ paths:
           description: Messaggio cancellato con successo.
           content:
             application/json:
+              example:
+                messageId: "msg0123457"
               schema:
                 type: object
                 description: Conferma cancellazione con ID
@@ -451,9 +501,9 @@ paths:
                   messageId:
                     type: string
                     description: L'ID del messaggio che è stato eliminato
-                    example: "msg01237"
+                    example: "msg0123457"
                     pattern: '^[a-zA-Z0-9]+$'
-                    minLength: 5
+                    minLength: 10
                     maxLength: 10
         '403':
           description: Forbidden - Non hai i permessi per cancellare questo messaggio (non è tuo)
@@ -498,6 +548,8 @@ paths:
           description: Stato del messaggio aggiornato con successo
           content:
             application/json:
+              example:
+                updatedAt: "2024-04-01T12:15:00Z"
               schema:
                 type: object
                 description: Conferma con timestamp
@@ -543,15 +595,25 @@ paths:
                 targetChatId:
                   type: string
                   description: Identificatore della chat di destinazione
-                  example: "chat01234"
+                  example: "chat012345"
                   pattern: '^[a-zA-Z0-9]+$'
-                  minLength: 5
+                  minLength: 10
                   maxLength: 10
       responses:
         '200':
           description: Messaggio inoltrato con successo
           content:
             application/json:
+              example:
+                forwardedMessage:
+                  messageId: "msg0123458"
+                  chatId: "chat012346"
+                  state: "sent"
+                  senderId: "abcd012345"
+                  createdAt: "2024-04-01T12:20:00Z"
+                  updatedAt: "2024-04-01T12:20:00Z"
+                  contentType: "text"
+                  text: "Messaggio inoltrato"
               schema:
                 type: object
                 description: Wrapper per il messaggio inoltrato
@@ -573,13 +635,6 @@ paths:
 
         '404':
           description: Messaggio originale o chat di destinazione non trovati
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-        '409':
-          description: Conflict - Il messaggio esiste già nella chat di destinazione
           content:
             application/json:
               schema:
@@ -608,20 +663,28 @@ paths:
                 emoji:
                   type: string
                   description: L'emoji inviata come reazione
-                  minLength: 1
-                  maxLength: 4
+                  example: "emoji_1234.jpg"
+                  pattern: '^[a-zA-Z0-9_]+\.(jpg|jpeg|png)$'
+                  minLength: 5
+                  maxLength: 50
                 sender: 
                   type: string
                   description: L'ID dell'utente che lascia il commento
                   example: "user123456"
                   pattern: '^[a-zA-Z0-9]+$'
-                  minLength: 5
+                  minLength: 10
                   maxLength: 10
       responses:
         '201':  
           description: Commento creato con successo
           content:
             application/json:
+              example:
+                commentId: "comm012334"
+                messageId: "msg0123456"
+                emojiSent: "emoji_1234.jpg"
+                senderId: "user123456"
+                createdAt: "2024-04-01T12:25:00Z"
               schema:
                 $ref: '#/components/schemas/Comment'
         '400':
@@ -692,14 +755,19 @@ paths:
                   type: string
                   description: Identificatore dell'utente che effettua la modifica 
                   pattern: '^[a-zA-Z0-9]+$'
-                  example: "abcdf0123"
-                  minLength: 5
+                  example: "abcdf01234"
+                  minLength: 10
                   maxLength: 10
       responses:
         '201':
           description: Gruppo creato con successo
           content:
             application/json:
+              example:
+                groupId: "group01234"
+                groupName: "Programmazione Web"
+                members: ["abcd012345"]
+                createdAt: "2024-04-01T10:00:00Z"
               schema:
                 $ref: '#/components/schemas/Group'
         '400':
@@ -755,15 +823,20 @@ paths:
                 userId:
                   type: string
                   description: Identificatore dell'utente che effettua la modifica 
-                  example: "abcde1234"
+                  example: "abcde12345"
                   pattern: '^.*?$'
-                  minLength: 5
+                  minLength: 10
                   maxLength: 10
       responses:
         '200':
           description: Nome del gruppo aggiornato con successo
           content:
             application/json:
+              example:
+                groupId: "group01234"
+                groupName: "Programmazione Web"
+                members: ["abcd012345"]
+                createdAt: "2024-04-01T10:00:00Z"
               schema:
                 $ref: '#/components/schemas/Group'
         '400':
@@ -810,13 +883,19 @@ paths:
                   description: L'URL dell'immagine
                   example: "img_user_1235.png"
                   pattern: '^img_[a-z]+_\d+\.(jpg|jpeg|png)$'
-                  minLength: 5
+                  minLength: 10
                   maxLength: 50
       responses:
         '200':
           description: Foto del gruppo aggiornata con successo
           content:
             application/json:
+              example:
+                groupId: "group01234"
+                groupName: "Programmazione Web"
+                groupPhoto: "img_group_12345.jpg"
+                members: ["abcd012345"]
+                createdAt: "2024-04-01T10:00:00Z"
               schema: 
                 $ref: '#/components/schemas/Group'
         '400':
@@ -867,15 +946,20 @@ paths:
                 userId:
                   type: string
                   description: L'ID dell'utente da aggiungere
-                  example: "abcd0123"
+                  example: "abcd012345"
                   pattern: '^[a-zA-Z0-9]+$'
-                  minLength: 5
+                  minLength: 10
                   maxLength: 10
       responses:
         '201':
           description: Membro aggiunto con successo
           content:
             application/json:
+              example:
+                groupId: "group01234"
+                groupName: "Programmazione Web"
+                members: ["abcd012345", "user123456"]
+                createdAt: "2024-04-01T10:00:00Z"
               schema:
                 $ref: '#/components/schemas/Group' 
         '404':
@@ -909,6 +993,11 @@ paths:
           description: L'utente ha lasciato il gruppo con successo
           content:
             application/json:
+              example:
+                groupId: "group01234"
+                groupName: "Programmazione Web"
+                members: ["user123456"]
+                createdAt: "2024-04-01T10:00:00Z"
               schema:
                 $ref: '#/components/schemas/Group'
         '400':
@@ -956,8 +1045,8 @@ components:
         userId:
           type: string
           description: Identificatore univoco dell'utente
-          example: "abcd0123"
-          minLength: 5
+          example: "abcd012345"
+          minLength: 10
           maxLength: 10
         name:
           type: string
@@ -970,7 +1059,7 @@ components:
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."
           example: "img_user_12345.jpg"
           pattern: ^img_[a-z]+_\d+\.(jpg|jpeg|png)$
-          minLength: 5
+          minLength: 10
           maxLength: 50
       required:
         - userId
@@ -983,16 +1072,16 @@ components:
         messageId:
           type: string
           description: Identificatore univoco del messaggio
-          example: "msg012345"
+          example: "msg0123456"
           pattern: '^[a-zA-Z0-9]+$'
-          minLength: 5
+          minLength: 10
           maxLength: 10
         chatId:
           type: string
           description: Identificatore univoco della chat a cui appartiene il messaggio
           example: "chat012345"
           pattern: '^[a-zA-Z0-9]+$'
-          minLength: 5
+          minLength: 10
           maxLength: 10
         state:
           type: string
@@ -1000,31 +1089,12 @@ components:
           description: Stato di consegna del messaggio [inviato, ricevuto dal server, letto dal destinatario]
           example: "read"
           default: "sent"
-        contentType:
-          type: string
-          description: "Tipologia del contenuto del messaggio. Default: text"
-          enum: ["text", "image","audio"]
-          default: "text"
-          example: "text"
-        photoUrl:
-          type: string
-          description: "ID o URL della risorsa immagine. Se null."
-          example: "img_sent_12345.jpg"
-          pattern: ^img_[a-z]+_\d+\.(jpg|jpeg|png)$
-          minLength: 5
-          maxLength: 50
-        text:
-          type: string
-          description: Corpo testuale del messaggio
-          example: "AHAHAHAH"
-          minLength: 1
-          maxLength: 1000
         senderId:
           type: string
           description: Identificatore dell'utente che ha inviato il messaggio
-          example: "abcd0123"
+          example: "abcd012345"
           pattern: '^[a-zA-Z0-9]+$'
-          minLength: 5
+          minLength: 10
           maxLength: 10
         createdAt:
           type: string
@@ -1034,11 +1104,38 @@ components:
           type: string
           description: Timestamp dell'ultima modifica al messaggio
           format: date-time
+      oneOf:
+        # SCENARIO 1: Messaggio di Testo
+        - title: Messaggio di Testo
+          required: [contentType, text] 
+          properties:
+            contentType:
+              type: string
+              description: Contenuto testuale
+              enum: ["text"]
+            text:
+              type: string
+              description: Testo del messaggio
+              minLength: 1
+              maxLength: 1000
+        # SCENARIO 2: Messaggio Immagine
+        - title: Messaggio Immagine
+          required: [contentType, photoUrl] 
+          properties:
+            contentType:
+              type: string
+              description: Contenuto immagine
+              enum: ["image"]
+            photoUrl:
+              type: string
+              description: URL della risorsa immagine
+              pattern: ^img_[a-z]+_\d+\.(jpg|jpeg|png)$
+              minLength: 10
+              maxLength: 50
       required:
         - messageId
         - chatId
         - state
-        - text
         - senderId
         - createdAt
         - updatedAt
@@ -1052,27 +1149,29 @@ components:
           type: string
           description: Identificatore univoco del commento
           pattern: '^[a-zA-Z0-9]+$'
-          minLength: 5
+          minLength: 10
           maxLength: 10
           example: "comm012334"
         messageId:
           type: string
           description: Identificatore del messaggio a cui il commento si riferisce
           pattern: '^[a-zA-Z0-9]+$'
-          minLength: 5
+          minLength: 10
           maxLength: 10
-          example: "mess01234"
+          example: "mess012345"
         emojiSent:
           type: string
           description: L'emoticon inviata come reazione
-          minLength: 1
-          maxLength: 4
+          example: "emoji_1234.jpg"
+          pattern: '^[a-zA-Z0-9_]+\.(jpg|jpeg|png)$'
+          minLength: 5
+          maxLength: 50
         senderId:
           type: string
           description: L'ID dell'utente che ha creato il commento
           example: "user123456"
           pattern: '^[a-zA-Z0-9]+$'
-          minLength: 5
+          minLength: 10
           maxLength: 10
         createdAt:
           type: string
@@ -1092,9 +1191,9 @@ components:
         groupId:
           type: string
           description: Identificatore univoco del gruppo
-          example: "group0123"
+          example: "group01234"
           pattern: '^[a-zA-Z0-9]+$'
-          minLength: 5
+          minLength: 10
           maxLength: 10
         groupName:
           type: string
@@ -1114,12 +1213,12 @@ components:
           type: array
           description: Lista degli ID degli utenti che appartengono al gruppo
           minItems: 1
-          maxItems: 200
+          maxItems: 500
           items:
             type: string
             description: L'ID dell'utente membro
             pattern: '^[a-zA-Z0-9]+$'
-            minLength: 5
+            minLength: 10
             maxLength: 10
           example: 
             - "abcdef0123"
@@ -1133,7 +1232,7 @@ components:
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."
           example: "img_group_12345.jpg"
           pattern: '^img_[a-z]+_\d+\.(jpg|jpeg|png)$'
-          minLength: 5
+          minLength: 10
           maxLength: 50
       required:
         - groupId
@@ -1154,7 +1253,7 @@ components:
             type: string
             description: l'id dei messaggi della chat
             pattern: '^[a-zA-Z0-9]+$'
-            minLength: 5
+            minLength: 10
             maxLength: 10
           example: 
             - "abcdef0123"
@@ -1201,8 +1300,8 @@ components:
       schema:
         type: string
         pattern: '^[a-zA-Z0-9]+$'
-        example: "abcdf0123"
-        minLength: 5
+        example: "abcdf01234"
+        minLength: 10
         maxLength: 10
     GroupId:
       name: groupId
@@ -1213,7 +1312,7 @@ components:
         type: string
         pattern: '^[a-zA-Z0-9]+$'
         example: "group12345"
-        minLength: 5
+        minLength: 10
         maxLength: 10
     MemberId:
       name: memberId
@@ -1224,7 +1323,7 @@ components:
         type: string
         pattern: '^[a-zA-Z0-9]+$'
         example: "mem1234567"
-        minLength: 5
+        minLength: 10
         maxLength: 10
     ChatId:
       name: chatId
@@ -1235,7 +1334,7 @@ components:
         type: string
         pattern: '^[a-zA-Z0-9]+$'
         example: "chat012345"
-        minLength: 5
+        minLength: 10
         maxLength: 10
     MessageId:
       name: messageId
@@ -1246,7 +1345,7 @@ components:
         type: string
         pattern: '^[a-zA-Z0-9]+$'
         example: "msg0123456"
-        minLength: 5
+        minLength: 10
         maxLength: 10
     CommentId: 
       name: commentId
@@ -1257,5 +1356,5 @@ components:
         type: string
         pattern: '^[a-zA-Z0-9]+$'
         example: "com0123456"
-        minLength: 5
+        minLength: 10
         maxLength: 10
