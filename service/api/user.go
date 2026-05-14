@@ -1,0 +1,90 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/julienschmidt/httprouter"
+)
+
+// Esempio pseudo-codice nell'handler API
+func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request) {
+
+	params := httprouter.ParamsFromContext(r.Context())
+	userId := params.ByName("userId")
+
+	if userId == "" {
+		http.Error(w, "userId mancante", http.StatusBadRequest)
+		return
+	}
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	
+	err := rt.db.SetUserName(userId, body.Name)
+    if err != nil {
+        if err.Error() == "utente non trovato" {
+             // 404
+             return
+        }
+        // 400
+        return
+    }
+
+    user, err := rt.db.GetUser(userId)
+    if err != nil {
+        // 500
+        return
+    }
+
+    // 200 OK
+    json.NewEncoder(w).Encode(user)
+}
+
+func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	userId := params.ByName("userId")
+
+	// A. Controllo esistenza utente
+	if _, esiste := userDatabase[userId]; !esiste {
+		http.Error(w, "Utente non trovato", http.StatusNotFound)
+		return
+	}
+
+	// B. Controllo Content-Type (image/png o image/jpeg)
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "image/png" && contentType != "image/jpeg" {
+		http.Error(w, "Formato non supportato. Usa image/png o image/jpeg", http.StatusBadRequest)
+		return
+	}
+
+	// C. Limite dimensioni file (Es. Max 5MB)
+	// Questo protegge il server da file giganti che riempiono la memoria
+	r.Body = http.MaxBytesReader(w, r.Body, 5*1024*1024)
+
+	// D. Lettura dei dati binari
+	// Qui leggiamo i byte grezzi dell'immagine
+	fileBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Errore nella lettura del file o file troppo grande", http.StatusBadRequest)
+		return
+	}
+
+	// E. Simulazione Salvataggio
+	// In un caso reale, qui salveresti 'fileBytes' su un disco o su cloud (S3)
+	fmt.Printf("Ricevuta immagine per User %s! Dimensione: %d bytes. Tipo: %s\n", userId, len(fileBytes), contentType)
+
+	// F. Risposta 200 OK
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Foto profilo aggiornata correttamente"})
+}

@@ -1,45 +1,47 @@
-/*
-Package database is the middleware between the app database and the code. All data (de)serialization (save/load) from a
-persistent database are handled here. Database specific logic should never escape this package.
-
-To use this package you need to apply migrations to the database if needed/wanted, connect to it (using the database
-data source name from config), and then initialize an instance of AppDatabase from the DB connection.
-
-For example, this code adds a parameter in `webapi` executable for the database data source name (add it to the
-main.WebAPIConfiguration structure):
-
-	DB struct {
-		Filename string `conf:""`
-	}
-
-This is an example on how to migrate the DB and connect to it:
-
-	// Start Database
-	logger.Println("initializing database support")
-	db, err := sql.Open("sqlite3", "./foo.db")
-	if err != nil {
-		logger.WithError(err).Error("error opening SQLite DB")
-		return fmt.Errorf("opening SQLite: %w", err)
-	}
-	defer func() {
-		logger.Debug("database stopping")
-		_ = db.Close()
-	}()
-
-Then you can initialize the AppDatabase and pass it to the api package.
-*/
 package database
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // AppDatabase is the high level interface for the DB
 type AppDatabase interface {
-	GetName() (string, error)
-	SetName(name string) error
+	// Login
+	DoLogin(name string) (string, error)
+
+	// User
+	SetUserName(userId string, name string) error 
+	GetUser(id string) (*User, error)
+	SetMyPhoto(userId string, photoUrl string) error 
+
+	// Chats
+	CreateChat(userId1 string, userId2 string) (*Chat, error)
+	GetMyChats(userId string) ([]Chat, error) 
+	//GetCurrentChat(chatId string, numMessages int) (*Chat, error)
+
+	// Messages
+	SendMessage(message Message) (*Message, error)
+	UpdateMessage(message Message, text string) (*Message, error)
+	DeleteMessage(messageId string, userId string) (string, error)
+	UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error)
+	ForwardMessage(messageId string, targetChatId string, userId string) (*Message, error)
+
+	// Comments
+	//CreateComment(comment Comment) (string, error)
+	//DeleteComment(commentId string) error
+
+	// Groups
+	CreateGroup(group Group, creatorId string) (*Group, error) 
+	GetGroup(groupId string) (*Group, error)
+	SetGroupName(groupId string, userId string, name string) error
+	SetGroupPhoto(groupId string, userId string, photoUrl string) error
+	AddToGroup(groupId string, userId string) error
+	LeaveGroup(groupId string, userId string) error
 
 	Ping() error
 }
@@ -49,28 +51,98 @@ type appdbimpl struct {
 }
 
 // New returns a new instance of AppDatabase based on the SQLite connection `db`.
-// `db` is required - an error will be returned if `db` is `nil`.
 func New(db *sql.DB) (AppDatabase, error) {
 	if db == nil {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
-	// Check if table exists. If not, the database is empty, and we need to create the structure
-	var tableName string
-	err := db.QueryRow(`SELECT name FROM sqlite_master WHERE type='table' AND name='example_table';`).Scan(&tableName)
-	if errors.Is(err, sql.ErrNoRows) {
-		sqlStmt := `CREATE TABLE example_table (id INTEGER NOT NULL PRIMARY KEY, name TEXT);`
-		_, err = db.Exec(sqlStmt)
-		if err != nil {
-			return nil, fmt.Errorf("error creating database structure: %w", err)
+	// 1. Tabella USERS
+	sqlUsers := `
+	CREATE TABLE IF NOT EXISTS users (
+		identifier TEXT PRIMARY KEY,
+		name TEXT NOT NULL UNIQUE, -- Aggiunto UNIQUE per il login
+		photo_url TEXT 
+	);`
+
+	// 2. Tabella CHATS
+	sqlChats := `
+	CREATE TABLE IF NOT EXISTS chats (
+		chat_id TEXT PRIMARY KEY,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		modified_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		type TEXT NOT NULL DEFAULT 'dm'
+	);`
+
+	// 3. Tabella GROUPS
+	sqlGroups := `
+		CREATE TABLE IF NOT EXISTS groups (
+			group_id TEXT PRIMARY KEY,
+			group_name TEXT NOT NULL,
+			group_description TEXT,
+			photo_url TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			chat_id TEXT NOT NULL,
+			FOREIGN KEY(chat_id) REFERENCES chats(chat_id) ON DELETE CASCADE
+		);`
+
+	// 4. Tabella MESSAGES
+	sqlMessages := `
+		CREATE TABLE IF NOT EXISTS messages (
+			message_id TEXT PRIMARY KEY,
+			chat_id TEXT NOT NULL,           
+			sender_id TEXT NOT NULL, 
+			text TEXT,
+			state TEXT DEFAULT 'sent',
+			content_type TEXT DEFAULT 'text',
+			photo_url TEXT,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME,
+			FOREIGN KEY(chat_id) REFERENCES chats(chat_id) ON DELETE CASCADE,
+			FOREIGN KEY(sender_id) REFERENCES users(identifier)
+		);`
+
+	// 5. Tabella CHAT_MEMBERS
+	sqlMembers := `
+		CREATE TABLE IF NOT EXISTS chat_members (
+			chat_id TEXT,
+			user_id TEXT,
+			joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			role TEXT DEFAULT 'member',
+			PRIMARY KEY (chat_id, user_id),
+			FOREIGN KEY(chat_id) REFERENCES chats(chat_id) ON DELETE CASCADE,
+			FOREIGN KEY(user_id) REFERENCES users(identifier) ON DELETE CASCADE
+		);`
+
+	// 6. Tabella COMMENTS
+	sqlComments := `
+		CREATE TABLE IF NOT EXISTS comments (
+			comment_id TEXT PRIMARY KEY,
+			message_id TEXT NOT NULL,
+			sender_id TEXT NOT NULL,
+			emoji TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE,
+			FOREIGN KEY(sender_id) REFERENCES users(identifier)
+		);`
+
+	queries := []string{sqlUsers, sqlChats, sqlGroups, sqlMessages, sqlMembers, sqlComments}
+
+	for _, q := range queries {
+		if _, err := db.Exec(q); err != nil {
+			return nil, fmt.Errorf("error creating database schema: %w", err)
 		}
 	}
 
-	return &appdbimpl{
-		c: db,
-	}, nil
+	return &appdbimpl{c: db}, nil
 }
 
 func (db *appdbimpl) Ping() error {
 	return db.c.Ping()
+}
+
+// generateID crea un identificativo univoco casuale (20 caratteri hex)
+func generateID() string {
+	id := make([]byte, 10)
+	_, _ = rand.Read(id)
+	return hex.EncodeToString(id)
 }

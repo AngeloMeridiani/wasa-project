@@ -1,0 +1,110 @@
+package database
+
+import (
+	"database/sql"
+	"fmt"
+)
+
+func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
+
+	return &Chat{}, nil
+}
+
+func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
+	query := `
+		SELECT 
+			c.chat_id, 
+			c.created_at, 
+			c.modified_at,
+			CASE 
+				WHEN c.type = 'group' THEN g.group_name
+				ELSE u.name
+			END as title,
+			m.message_id,
+			m.sender_id,
+			m.text,
+			m.state,
+			m.content_type,
+			m.photo_url,
+			m.created_at as msg_created_at,
+			m.updated_at as msg_updated_at
+		FROM chats c
+		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
+		LEFT JOIN groups g ON c.chat_id = g.chat_id AND c.type = 'group'
+		LEFT JOIN chat_members cm2 ON c.chat_id = cm2.chat_id AND cm2.user_id != ? AND c.type = 'dm'
+		LEFT JOIN users u ON cm2.user_id = u.identifier
+		LEFT JOIN (
+			SELECT m1.*
+			FROM messages m1
+			JOIN (
+				SELECT chat_id, MAX(created_at) as max_created_at
+				FROM messages
+				GROUP BY chat_id
+			) m2 ON m1.chat_id = m2.chat_id AND m1.created_at = m2.max_created_at
+			GROUP BY m1.chat_id 
+		) m ON c.chat_id = m.chat_id
+		ORDER BY c.modified_at DESC
+	`
+
+	rows, err := db.c.Query(query, userId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("errore nella query GetMyChats: %w", err)
+	}
+	defer rows.Close()
+
+	var chats []Chat
+	for rows.Next() {
+		var chat Chat
+		var title sql.NullString
+		
+		// Campi nullable per l'ultimo messaggio (potrebbe non esserci)
+		var msgId, senderId, text, state, contentType, photoUrl sql.NullString
+		var msgCreatedAt, msgUpdatedAt sql.NullTime
+
+		err := rows.Scan(
+			&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &title,
+			&msgId, &senderId, &text, &state, &contentType, &photoUrl, &msgCreatedAt, &msgUpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("errore nello scan della chat: %w", err)
+		}
+
+		if title.Valid {
+			chat.Title = title.String
+		}
+
+		// Se abbiamo un messageId valido, significa che c'è un ultimo messaggio
+		if msgId.Valid {
+			chat.LastMessage = &Message{
+				MessageId:   msgId.String,
+				ChatId:      chat.ChatId,
+				SenderId:    senderId.String,
+				Text:        text.String,
+				State:       MessageState(state.String),
+				ContentType: ContentType(contentType.String),
+			}
+			if photoUrl.Valid {
+				chat.LastMessage.PhotoUrl = photoUrl.String
+			}
+			if msgCreatedAt.Valid {
+				chat.LastMessage.CreatedAt = msgCreatedAt.Time
+			}
+			if msgUpdatedAt.Valid {
+				chat.LastMessage.UpdatedAt = msgUpdatedAt.Time
+			}
+		}
+
+		chats = append(chats, chat)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Evitiamo di ritornare null (vogliamo un array vuoto [] nel JSON se non ci sono chat)
+	if chats == nil {
+		chats = make([]Chat, 0)
+	}
+
+	return chats, nil
+}

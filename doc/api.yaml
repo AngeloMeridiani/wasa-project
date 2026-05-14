@@ -405,7 +405,6 @@ paths:
       description: |-
         Permette di modificare il testo di un messaggio esistente.
       operationId: updateMessage
-      
       requestBody: 
         description: Contenuto del messaggio aggiornato
         required: true
@@ -954,7 +953,7 @@ components:
       type: object
       description: Rappresenta un utente registrato nella piattaforma
       properties:
-        identifier:
+        userId:
           type: string
           description: Identificatore univoco dell'utente
           example: "abcd0123"
@@ -964,8 +963,8 @@ components:
           type: string
           description: Nome pubblico dell'utente
           example: "Maria"
-          minLength: 1
-          maxLength: 15
+          minLength: 3
+          maxLength: 16
         userPhoto:
           type: string
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."
@@ -974,7 +973,7 @@ components:
           minLength: 5
           maxLength: 50
       required:
-        - identifier
+        - userId
         - name
 
     Message:  
@@ -985,6 +984,13 @@ components:
           type: string
           description: Identificatore univoco del messaggio
           example: "msg012345"
+          pattern: '^[a-zA-Z0-9]+$'
+          minLength: 5
+          maxLength: 10
+        chatId:
+          type: string
+          description: Identificatore univoco della chat a cui appartiene il messaggio
+          example: "chat012345"
           pattern: '^[a-zA-Z0-9]+$'
           minLength: 5
           maxLength: 10
@@ -1017,6 +1023,7 @@ components:
           type: string
           description: Identificatore dell'utente che ha inviato il messaggio
           example: "abcd0123"
+          pattern: '^[a-zA-Z0-9]+$'
           minLength: 5
           maxLength: 10
         createdAt:
@@ -1029,6 +1036,7 @@ components:
           format: date-time
       required:
         - messageId
+        - chatId
         - state
         - text
         - senderId
