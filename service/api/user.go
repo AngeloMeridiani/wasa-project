@@ -29,32 +29,32 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	
-	err := rt.db.SetUserName(userId, body.Name)
-    if err != nil {
-        if err.Error() == "utente non trovato" {
-             // 404
-             return
-        }
-        // 400
-        return
-    }
 
-    user, err := rt.db.GetUser(userId)
-    if err != nil {
-        // 500
-        return
-    }
+	err = rt.db.SetUserName(userId, body.Name)
+	if err != nil {
+		if err.Error() == "utente non trovato" {
+			// 404
+			return
+		}
+		// 400
+		return
+	}
 
-    // 200 OK
-    json.NewEncoder(w).Encode(user)
+	user, err := rt.db.GetUser(userId)
+	if err != nil {
+		// 500
+		return
+	}
+
+	// 200 OK
+	json.NewEncoder(w).Encode(user)
 }
 
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request) {
 	params := httprouter.ParamsFromContext(r.Context())
 	userId := params.ByName("userId")
 
-	// A. Controllo esistenza utente
+	// A. Controllo che l'utente esista. Se no errore
 	if _, esiste := userDatabase[userId]; !esiste {
 		http.Error(w, "Utente non trovato", http.StatusNotFound)
 		return
@@ -67,23 +67,19 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// C. Limite dimensioni file (Es. Max 5MB)
-	// Questo protegge il server da file giganti che riempiono la memoria
+	// Check limite dimensione massima immagine
 	r.Body = http.MaxBytesReader(w, r.Body, 5*1024*1024)
 
-	// D. Lettura dei dati binari
-	// Qui leggiamo i byte grezzi dell'immagine
+	// Leggo i byte dell'immagine
 	fileBytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Errore nella lettura del file o file troppo grande", http.StatusBadRequest)
 		return
 	}
 
-	// E. Simulazione Salvataggio
-	// In un caso reale, qui salveresti 'fileBytes' su un disco o su cloud (S3)
 	fmt.Printf("Ricevuta immagine per User %s! Dimensione: %d bytes. Tipo: %s\n", userId, len(fileBytes), contentType)
 
-	// F. Risposta 200 OK
+	// Risposta 200 OK
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Foto profilo aggiornata correttamente"})

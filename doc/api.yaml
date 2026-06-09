@@ -976,7 +976,6 @@ paths:
                 $ref: '#/components/schemas/Error'
 
   /groups/{groupId}/members/{memberId}:
-  #controllo in back-end che memberId sia uguale all'ID dell'utente connesso
     delete:
       tags: ["Groups"]
       summary: Lascia il gruppo
