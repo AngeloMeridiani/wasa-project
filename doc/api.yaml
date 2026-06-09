@@ -1104,7 +1104,6 @@ components:
           description: Timestamp dell'ultima modifica al messaggio
           format: date-time
       oneOf:
-        # SCENARIO 1: Messaggio di Testo
         - title: Messaggio di Testo
           required: [contentType, text] 
           properties:
@@ -1117,7 +1116,6 @@ components:
               description: Testo del messaggio
               minLength: 1
               maxLength: 1000
-        # SCENARIO 2: Messaggio Immagine
         - title: Messaggio Immagine
           required: [contentType, photoUrl] 
           properties:

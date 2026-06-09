@@ -53,16 +53,6 @@ func (db *appdbimpl) UpdateMessage(message Message, text string) (*Message, erro
 }
 
 func (db *appdbimpl) DeleteMessage(messageId string, userId string) (string,error) {
-	var userExists bool
-	
-	err := db.c.QueryRow("SELECT 1 FROM messages WHERE sender_id = ? AND message_id = ?", userId, messageId).Scan(&userExists)
-
-	if errors.Is(err, sql.ErrNoRows) {
-        return "", errors.New("Impossibile cancellare il messaggio, utente non autorizzato o messaggio non trovato") 
-    }
-	if err != nil {
-		return "", fmt.Errorf("Errore durante la verifica del messaggio: %w", err)
-	}
 	
 	result, err := db.c.Exec("DELETE FROM messages WHERE message_id = ? AND sender_id = ?", messageId, userId)
 	if err != nil {
@@ -74,8 +64,8 @@ func (db *appdbimpl) DeleteMessage(messageId string, userId string) (string,erro
 		return "", fmt.Errorf("Errore durante la cancellazione del messaggio; %w", err)
 	}
 	
+	// 404
 	if rows == 0 {
-		// 404
 		return "", errors.New("Messaggio non trovato")
 	}
 	

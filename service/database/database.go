@@ -32,8 +32,8 @@ type AppDatabase interface {
 	ForwardMessage(messageId string, targetChatId string, userId string) (*Message, error)
 
 	// Comments
-	//CreateComment(comment Comment) (string, error)
-	//DeleteComment(commentId string) error
+	CreateComment(comment Comment) (*Comment, error)
+	DeleteComment(commentId string, userId string) error
 
 	// Groups
 	CreateGroup(group Group, creatorId string) (*Group, error) 
@@ -60,7 +60,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 	sqlUsers := `
 	CREATE TABLE IF NOT EXISTS users (
 		identifier TEXT PRIMARY KEY,
-		name TEXT NOT NULL UNIQUE, -- Aggiunto UNIQUE per il login
+		name TEXT NOT NULL UNIQUE,
 		photo_url TEXT 
 	);`
 
@@ -121,6 +121,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			sender_id TEXT NOT NULL,
 			emoji TEXT NOT NULL,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME,
 			FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE,
 			FOREIGN KEY(sender_id) REFERENCES users(identifier)
 		);`
