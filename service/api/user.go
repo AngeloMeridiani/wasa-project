@@ -6,14 +6,13 @@ import (
 	"io"
 	"net/http"
 
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
 )
 
-// Esempio pseudo-codice nell'handler API
-func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request) {
+func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 
-	params := httprouter.ParamsFromContext(r.Context())
-	userId := params.ByName("userId")
+	userId := ps.ByName("userId")
 
 	if userId == "" {
 		http.Error(w, "userId mancante", http.StatusBadRequest)
@@ -50,12 +49,12 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	userId := params.ByName("userId")
+func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	userId := ps.ByName("userId")
 
 	// A. Controllo che l'utente esista. Se no errore
-	if _, esiste := userDatabase[userId]; !esiste {
+	_, err := rt.db.GetUser(userId)
+	if err != nil {
 		http.Error(w, "Utente non trovato", http.StatusNotFound)
 		return
 	}

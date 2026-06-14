@@ -24,6 +24,15 @@ const (
 	Admin  Role = "admin"
 )
 
+type LoginRequest struct {
+	Name string
+}
+
+type LoginResponse struct {
+	Identifier string
+	Token      string
+}
+
 type User struct {
 	Userid    string
 	Name      string
@@ -72,13 +81,4 @@ type Comment struct {
 	SenderId  string
 	Emoji     string
 	CreatedAt time.Time
-}
-
-type LoginRequest struct {
-	Name string
-}
-
-type LoginResponse struct {
-	Identifier string
-	Token      string
 }

@@ -52,7 +52,7 @@ paths:
                   example: Maria
                   pattern: '^[a-zA-Z0-9_]+$'
                   minLength: 3
-                  maxLength: 16
+                  maxLength: 25
         required: true
       responses:
         '201':
@@ -101,7 +101,7 @@ paths:
                   example: Maria
                   pattern: '^.*?$'
                   minLength: 3
-                  maxLength: 16
+                  maxLength: 25
       responses:
         '200':
           description: Nome utente aggiornato con successo
@@ -1052,7 +1052,7 @@ components:
           description: Nome pubblico dell'utente
           example: "Maria"
           minLength: 3
-          maxLength: 16
+          maxLength: 25
         userPhoto:
           type: string
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."

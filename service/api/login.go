@@ -1,15 +1,16 @@
 package api
 
 import (
+	"database/sql"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
+
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
+	"github.com/julienschmidt/httprouter"
 )
 
-// Mappa globale simulata per salvare gli utenti temporaneamente (in assenza di DB reale per questo endpoint)
-var userDatabase = make(map[string]string)
-
-func doLogin(w http.ResponseWriter, r *http.Request) {
+func (rt *_router) doLogin(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Metodo non consentito", http.StatusMethodNotAllowed)
 		return
@@ -23,26 +24,31 @@ func doLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	lunghezzaNome := len(richiesta.Name)
-	if lunghezzaNome < 3 || lunghezzaNome > 16 {
-		http.Error(w, "Il nome deve essere tra 3 e 16 caratteri", http.StatusBadRequest)
+	if lunghezzaNome < 3 || lunghezzaNome > 25 {
+		http.Error(w, "Il nome deve essere tra 3 e 25 caratteri", http.StatusBadRequest)
 		return
 	}
 
-	var idUtente string
-
-	if idEsistente, esiste := userDatabase[richiesta.Name]; esiste {
-		fmt.Printf("Bentornato %s! Recupero ID esistente.\n", richiesta.Name)
-		idUtente = idEsistente
+	var userId string
+	user, err := rt.db.GetUser(richiesta.Name)
+	if err == nil {
+		userId = user.UserId
+	} else if errors.Is(err, sql.ErrNoRows) {
+		newUser, errCreate := rt.db.CreateUser(richiesta.Name)
+		if errCreate != nil {
+			rt.baseLogger.WithError(errCreate).Error("Errore nella creazione dell'utente")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		userId = newUser.UserId
 	} else {
-		fmt.Printf("Nuovo utente %s! Creazione in corso...\n", richiesta.Name)
-		idUtente = "abcd012345"
-		userDatabase[richiesta.Name] = idUtente
+		rt.baseLogger.WithError(err).Error("Errore nella richiesta dell'utente")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	
 	risposta := LoginResponse{
-		Identifier: idUtente,
-		Token:      "GciOiJIUzI1NiIsInR5cCI6IkpXVCJ", 
+		Identifier: userId,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

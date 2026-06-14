@@ -7,6 +7,31 @@ import (
 	"strings"
 )
 
+func (db *appdbimpl) CreateUser(newName string) (*User, error) {
+
+	trimmedName := strings.TrimSpace(newName)
+	length := len(trimmedName)
+	if length < 3 {
+		return nil, errors.New("Il nome è troppo corto (minimo 3 caratteri)")
+	}
+	if length > 25 {
+		return nil, errors.New("Il nome è troppo lungo (massimo 25 caratteri)")
+	}
+
+	userId := generateID()
+	_, err := db.c.Exec("INSERT INTO users (identifier, name) VALUES (?, ?)", userId, newName)
+	if err != nil {
+		return nil, fmt.Errorf("errore creazione utente: %w", err)
+	}
+
+	user := &User{
+		UserId: userId,
+		Name:   newName,
+	}
+
+	return user, nil
+}
+
 func (db *appdbimpl) SetUserName(identifier string, newName string) error {
 
 	trimmedName := strings.TrimSpace(newName)
@@ -15,8 +40,8 @@ func (db *appdbimpl) SetUserName(identifier string, newName string) error {
 	if length < 3 {
 		return errors.New("Il nome è troppo corto (minimo 3 caratteri)")
 	}
-	if length > 16 {
-		return errors.New("Il nome è troppo lungo (massimo 16 caratteri)")
+	if length > 25 {
+		return errors.New("Il nome è troppo lungo (massimo 25 caratteri)")
 	}
 
 	result, err := db.c.Exec("UPDATE users SET name = ? WHERE identifier = ?", newName, identifier)

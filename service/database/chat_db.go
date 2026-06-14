@@ -3,11 +3,29 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"time"
 )
 
 func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 
-	return &Chat{}, nil
+	chatId := generateID()
+	created_at := time.Now()
+	modified_at = time.Now()
+	chat_type := "dm"
+
+	_, err := db.c.Exec("INSERT into chats (?, ?, ?, ?)", chat_Id, created_at, modified_at, chat_type)
+	if err != nil {
+		return nil, err
+	}
+
+	Chat := {
+		chat_id,
+		created_at,
+		modified_at,
+		chat_type
+	}
+
+	return Chat, nil
 }
 
 func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
@@ -101,7 +119,6 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 		return nil, err
 	}
 
-	// Evitiamo di ritornare null (vogliamo un array vuoto [] nel JSON se non ci sono chat)
 	if chats == nil {
 		chats = make([]Chat, 0)
 	}
