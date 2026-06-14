@@ -18,4 +18,7 @@ type RequestContext struct {
 
 	// Logger is a custom field logger for the request
 	Logger logrus.FieldLogger
+
+	// UserId is the authenticated user ID from the Bearer token
+	UserId string
 }

@@ -9,23 +9,39 @@ import (
 func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 
 	chatId := generateID()
-	created_at := time.Now()
-	modified_at = time.Now()
-	chat_type := "dm"
+	createdAt := time.Now()
+	modifiedAt := time.Now()
 
-	_, err := db.c.Exec("INSERT into chats (?, ?, ?, ?)", chat_Id, created_at, modified_at, chat_type)
+	// Iniziamo una transazione
+	tx, err := db.c.Begin()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("errore avvio transazione: %w", err)
+	}
+	defer tx.Rollback()
+
+	// Creiamo la chat nella tabella chats
+	_, err = tx.Exec("INSERT INTO chats (chat_id, created_at, modified_at, type) VALUES (?, ?, ?, ?)", chatId, createdAt, modifiedAt, "dm")
+	if err != nil {
+		return nil, fmt.Errorf("errore creazione chat: %w", err)
 	}
 
-	Chat := {
-		chat_id,
-		created_at,
-		modified_at,
-		chat_type
+	// Aggiungiamo i due utenti alla tabella chat_members 
+	_, err = tx.Exec("INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)", chatId, userId1, chatId, userId2)
+	if err != nil {
+		return nil, fmt.Errorf("errore inserimento membri: %w", err)
 	}
 
-	return Chat, nil
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("errore commit: %w", err)
+	}
+
+	newChat := &Chat{
+		ChatId:     chatId,
+		CreatedAt:  createdAt,
+		ModifiedAt: modifiedAt,
+	}
+
+	return newChat, nil
 }
 
 func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
@@ -75,7 +91,6 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 		var chat Chat
 		var title sql.NullString
 		
-		// Campi nullable per l'ultimo messaggio (potrebbe non esserci)
 		var msgId, senderId, text, state, contentType, photoUrl sql.NullString
 		var msgCreatedAt, msgUpdatedAt sql.NullTime
 
@@ -91,7 +106,6 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 			chat.Title = title.String
 		}
 
-		// Se abbiamo un messageId valido, significa che c'è un ultimo messaggio
 		if msgId.Valid {
 			chat.LastMessage = &Message{
 				MessageId:   msgId.String,

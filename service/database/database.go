@@ -71,7 +71,9 @@ func New(db *sql.DB) (AppDatabase, error) {
 		chat_id TEXT PRIMARY KEY,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		modified_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		type TEXT NOT NULL DEFAULT 'dm'
+		type TEXT NOT NULL DEFAULT 'dm',
+		last_message_id TEXT,
+		FOREIGN KEY(last_message_id) REFERENCES messages(message_id) ON DELETE SET NULL
 	);`
 
 	// 3. Tabella GROUPS

@@ -25,60 +25,61 @@ const (
 )
 
 type LoginRequest struct {
-	Name string
+	Name string `json:"name"`
 }
 
 type LoginResponse struct {
-	Identifier string
-	Token      string
+	Identifier string `json:"identifier"`
+	Token      string `json:"token,omitempty"`
 }
 
 type User struct {
-	Userid    string
-	Name      string
-	UserPhoto string
+	Userid    string `json:"userId"`
+	Name      string `json:"name"`
+	UserPhoto string `json:"userPhoto"`
 }
 
 type Group struct {
-	GroupId          string
-	ChatId           string
-	GroupName        string
-	GroupDescription string
-	PhotoUrl         string
-	CreatedAt        time.Time
-	Members          []string
+	GroupId          string    `json:"groupId"`
+	ChatId           string    `json:"chatId"`
+	GroupName        string    `json:"groupName"`
+	GroupDescription string    `json:"groupDescription"`
+	PhotoUrl         string    `json:"photoUrl,omitempty"`
+	CreatedAt        time.Time `json:"createdAt"`
+	Members          []string  `json:"members"`
 }
 
 type Chat struct {
-	ChatId      string
-	CreatedAt   time.Time
-	ModifiedAt  time.Time
-	LastMessage *Message
+	ChatId      string    `json:"chatId"`
+	Title       string    `json:"title,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+	ModifiedAt  time.Time `json:"modifiedAt"`
+	LastMessage *Message  `json:"lastMessage,omitempty"`
 }
 
 type ChatMember struct {
-	ChatId   string
-	UserId   string
-	JoinedAt time.Time
-	Role     Role
+	ChatId   string    `json:"chatId"`
+	UserId   string    `json:"userId"`
+	JoinedAt time.Time `json:"joinedAt"`
+	Role     Role      `json:"role"`
 }
 
 type Message struct {
-	MessageId   string
-	ChatId      string
-	SenderId    string
-	Text        string
-	State       MessageState
-	ContentType ContentType
-	PhotoUrl    string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	MessageId   string       `json:"messageId"`
+	ChatId      string       `json:"chatId"`
+	SenderId    string       `json:"senderId"`
+	Text        string       `json:"text"`
+	State       MessageState `json:"state"`
+	ContentType ContentType  `json:"contentType"`
+	PhotoUrl    string       `json:"photoUrl,omitempty"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	UpdatedAt   time.Time    `json:"updatedAt"`
 }
 
 type Comment struct {
-	CommentId string
-	MessageId string
-	SenderId  string
-	Emoji     string
-	CreatedAt time.Time
+	CommentId string    `json:"commentId"`
+	MessageId string    `json:"messageId"`
+	SenderId  string    `json:"senderId"`
+	Emoji     string    `json:"emoji"`
+	CreatedAt time.Time `json:"createdAt"`
 }

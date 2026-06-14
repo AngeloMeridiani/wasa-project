@@ -16,16 +16,13 @@ func (db *appdbimpl) DoLogin(username string) (string, error) {
 	if err == nil {
 		return id, nil
 	} else if !errors.Is(err, sql.ErrNoRows) {
-		return "", fmt.Errorf("errore ricerca utente: %w", err)
+		return "", fmt.Errorf("Errore ricerca utente: %w", err)
 	}
 
-	newId := generateID()
-	queryInsert := `INSERT INTO users (identifier, name) VALUES (?, ?)`
-
-	_, err = db.c.Exec(queryInsert, newId, username)
+	newUser, err := db.CreateUser(username)
 	if err != nil {
-		return "", fmt.Errorf("errore creazione utente: %w", err)
+		return "", fmt.Errorf("Errore creazione utente: %w", err)
 	}
 
-	return newId, nil
+	return newUser.UserId, nil
 }

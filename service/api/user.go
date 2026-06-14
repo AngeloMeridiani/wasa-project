@@ -15,6 +15,7 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	userId := ps.ByName("userId")
 
 	if userId == "" {
+		// 400
 		http.Error(w, "userId mancante", http.StatusBadRequest)
 		return
 	}
@@ -22,8 +23,10 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	var body struct {
 		Name string `json:"name"`
 	}
+	
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
+		// 400
 		http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
 		return
 	}
@@ -33,15 +36,18 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	if err != nil {
 		if err.Error() == "utente non trovato" {
 			// 404
+			http.Error(w, "Errore: 404", http.StatusNotFound)
 			return
 		}
 		// 400
+		http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
 		return
 	}
 
 	user, err := rt.db.GetUser(userId)
 	if err != nil {
 		// 500
+		http.Error(w, "Errore interno del server", http.StatusInternalServerError)
 		return
 	}
 
