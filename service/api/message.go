@@ -32,7 +32,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 	w.Header().Set("Content-Type", "application/json")
 	// 201
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(sentMessage)
+	_ = json.NewEncoder(w).Encode(sentMessage)
 }
 
 func (rt *_router) updateMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -41,7 +41,7 @@ func (rt *_router) updateMessage(w http.ResponseWriter, r *http.Request, ps http
 	var body struct {
 		Text string `json:"text"`
 	}
-	
+
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		// 400
@@ -60,7 +60,7 @@ func (rt *_router) updateMessage(w http.ResponseWriter, r *http.Request, ps http
 	w.Header().Set("Content-Type", "application/json")
 	// 200
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(updatedMessage)
+	_ = json.NewEncoder(w).Encode(updatedMessage)
 }
 
 func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -99,5 +99,5 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	w.Header().Set("Content-Type", "application/json")
 	// 200
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(forwardedMessage)
+	_ = json.NewEncoder(w).Encode(forwardedMessage)
 }

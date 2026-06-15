@@ -51,7 +51,7 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	}
 
 	// 200
-	json.NewEncoder(w).Encode(user)
+	_ = json.NewEncoder(w).Encode(user)
 }
 
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
@@ -95,5 +95,5 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	w.Header().Set("Content-Type", "application/json")
 	// 200
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Foto profilo aggiornata correttamente"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"message": "Foto profilo aggiornata correttamente"})
 }

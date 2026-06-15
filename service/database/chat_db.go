@@ -30,13 +30,13 @@ func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 	} else {
 		_, err = tx.Exec("INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)", chatId, userId1, chatId, userId2)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("errore inserimento membri: %w", err)
 	}
 
 	if err = tx.Commit(); err != nil {
-			return nil, fmt.Errorf("errore commit: %w", err)
+		return nil, fmt.Errorf("errore commit: %w", err)
 	}
 
 	newChat := &Chat{
@@ -66,7 +66,7 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 		LEFT JOIN users u ON cm2.user_id = u.identifier
 		WHERE c.chat_id = ?
 	`
-	
+
 	var chat Chat
 	err := db.c.QueryRow(chatQuery, userId, userId, chatId).Scan(
 		&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &chat.Title,

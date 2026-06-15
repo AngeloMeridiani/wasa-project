@@ -12,7 +12,7 @@ func (rt *_router) createComment(w http.ResponseWriter, r *http.Request, ps http
 	messageId := ps.ByName("messageId")
 
 	var body struct {
-		Emoji  string `json:"emoji"`
+		Emoji string `json:"emoji"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&body)
@@ -27,13 +27,13 @@ func (rt *_router) createComment(w http.ResponseWriter, r *http.Request, ps http
 	if err != nil {
 		// 500
 		http.Error(w, "Errore durante la creazione del commento", http.StatusInternalServerError)
-		return 
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	// 201
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newComment)
+	_ = json.NewEncoder(w).Encode(newComment)
 }
 
 func (rt *_router) deleteComment(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {

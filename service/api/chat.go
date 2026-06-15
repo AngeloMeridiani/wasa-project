@@ -27,9 +27,8 @@ func (rt *_router) createChat(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-
 	w.Header().Set("Content-Type", "application/json")
 	// 201
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newChat)
+	_ = json.NewEncoder(w).Encode(newChat)
 }

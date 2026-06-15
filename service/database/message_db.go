@@ -9,7 +9,7 @@ import (
 
 func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*Message, error) {
 	now := time.Now()
-	
+
 	message := Message{
 		MessageId:   generateID(),
 		ChatId:      chatId,
@@ -50,7 +50,7 @@ func (db *appdbimpl) UpdateMessage(messageId string, text string, senderId strin
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante la modifica del messaggio: %w", err)
 	}
-	
+
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func (db *appdbimpl) DeleteMessage(messageId string, userId string) error {
 func (db *appdbimpl) UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error) {
 	var currentStatus string
 	if newStatus != StateReceived && newStatus != StateRead {
-		return time.Time{}, fmt.Errorf("stato non valido: %s", string(newStatus))
+		return time.Time{}, fmt.Errorf("stato non valido: %s", newStatus)
 	}
 	err := db.c.QueryRow("SELECT state FROM messages WHERE message_id = ?", messageId).Scan(&currentStatus)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -111,24 +111,24 @@ func (db *appdbimpl) UpdateMessageStatus(messageId string, newStatus MessageStat
 		return time.Now(), nil
 	}
 	switch curState {
-		case StateSent:
-			if newStatus == StateReceived || newStatus == StateRead {
-				isValid = true
-			}
-		case StateReceived:
-			if newStatus == StateRead {
-				isValid = true
-			}
-		case StateRead:
-			isValid = false
+	case StateSent:
+		if newStatus == StateReceived || newStatus == StateRead {
+			isValid = true
+		}
+	case StateReceived:
+		if newStatus == StateRead {
+			isValid = true
+		}
+	case StateRead:
+		isValid = false
 	}
 
 	if !isValid {
-		return time.Time{}, fmt.Errorf("transizione di stato non valida: da %s a %s", string(curState), string(newStatus)) // 400
+		return time.Time{}, fmt.Errorf("transizione di stato non valida: da %s a %s", curState, newStatus) // 400
 	}
 
 	now := time.Now()
-	_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", string(newStatus), now, messageId)
+	_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", newStatus, now, messageId)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("errore aggiornamento stato: %w", err)
 	}
