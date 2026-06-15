@@ -605,21 +605,16 @@ paths:
           content:
             application/json:
               example:
-                forwardedMessage:
-                  messageId: "msg0123458"
-                  chatId: "chat012346"
-                  state: "sent"
-                  senderId: "abcd012345"
-                  createdAt: "2024-04-01T12:20:00Z"
-                  updatedAt: "2024-04-01T12:20:00Z"
-                  contentType: "text"
-                  text: "Messaggio inoltrato"
+                messageId: "msg0123458"
+                chatId: "chat012346"
+                state: "sent"
+                senderId: "abcd012345"
+                createdAt: "2024-04-01T12:20:00Z"
+                updatedAt: "2024-04-01T12:20:00Z"
+                contentType: "text"
+                text: "Messaggio inoltrato"
               schema:
-                type: object
-                description: Wrapper per il messaggio inoltrato
-                properties:
-                  forwardedMessage:
-                    $ref: '#/components/schemas/Message'
+                $ref: '#/components/schemas/Message'
         '400':
           description: Richiesta non valida
           content:
@@ -658,7 +653,6 @@ paths:
               description: Payload del commento
               required:
                 - emoji
-                - sender
               properties: 
                 emoji:
                   type: string
@@ -667,13 +661,6 @@ paths:
                   pattern: '^[a-zA-Z0-9_]+\.(jpg|jpeg|png)$'
                   minLength: 5
                   maxLength: 50
-                sender: 
-                  type: string
-                  description: L'ID dell'utente che lascia il commento
-                  example: "user123456"
-                  pattern: '^[a-zA-Z0-9]+$'
-                  minLength: 10
-                  maxLength: 10
       responses:
         '201':  
           description: Commento creato con successo

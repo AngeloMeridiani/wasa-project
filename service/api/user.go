@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -14,16 +13,16 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 
 	userId := ps.ByName("userId")
 
-	if userId == "" {
-		// 400
-		http.Error(w, "userId mancante", http.StatusBadRequest)
+	if ctx.UserId != userId {
+		// 403
+		http.Error(w, "Non sei autorizzato a modificare questo utente", http.StatusForbidden)
 		return
 	}
 
 	var body struct {
 		Name string `json:"name"`
 	}
-	
+
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		// 400
@@ -51,21 +50,29 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 		return
 	}
 
-	// 200 OK
+	// 200
 	json.NewEncoder(w).Encode(user)
 }
 
 func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// Estraggo l'id dell'utente dall'URL
 	userId := ps.ByName("userId")
 
-	// A. Controllo che l'utente esista. Se no errore
+	if ctx.UserId != userId {
+		// 403
+		http.Error(w, "Non sei autorizzato a modificare la foto di questo utente", http.StatusForbidden)
+		return
+	}
+
+	// Controllo che l'utente esista
 	_, err := rt.db.GetUser(userId)
 	if err != nil {
+		// 404
 		http.Error(w, "Utente non trovato", http.StatusNotFound)
 		return
 	}
 
-	// B. Controllo Content-Type (image/png o image/jpeg)
+	// Controllo il Content-Type
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "image/png" && contentType != "image/jpeg" {
 		http.Error(w, "Formato non supportato. Usa image/png o image/jpeg", http.StatusBadRequest)
@@ -78,14 +85,15 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	// Leggo i byte dell'immagine
 	fileBytes, err := io.ReadAll(r.Body)
 	if err != nil {
+		// 400
 		http.Error(w, "Errore nella lettura del file o file troppo grande", http.StatusBadRequest)
 		return
 	}
 
-	fmt.Printf("Ricevuta immagine per User %s! Dimensione: %d bytes. Tipo: %s\n", userId, len(fileBytes), contentType)
+	ctx.Logger.Infof("Ricevuta immagine per User %s! Dimensione: %d bytes. Tipo: %s\n", userId, len(fileBytes), contentType)
 
-	// Risposta 200 OK
 	w.Header().Set("Content-Type", "application/json")
+	// 200
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Foto profilo aggiornata correttamente"})
 }

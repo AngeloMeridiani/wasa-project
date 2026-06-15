@@ -42,7 +42,7 @@ type Group struct {
 
 type Chat struct {
 	ChatId      string    `json:"chatId"`
-	Title       string    `json:"title,omitempty"` 
+	Title       string    `json:"title,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`
 	ModifiedAt  time.Time `json:"modifiedAt"`
 	LastMessage *Message  `json:"lastMessage,omitempty"`

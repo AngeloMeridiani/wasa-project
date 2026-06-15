@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-func (db *appdbimpl) CreateGroup(group Group, creatorId string) (*Group, error) {
-	if len(group.GroupName) < 1 || len(group.GroupName) > 30 {
+func (db *appdbimpl) CreateGroup(groupName string, groupDescription string, photoUrl string, creatorId string) (*Group, error) {
+	if len(groupName) < 1 || len(groupName) > 30 {
 		return nil, errors.New("Il nome del gruppo deve avere tra 1 e 30 caratteri")
 	}
-	if len(group.GroupDescription) > 50 {
+	if len(groupDescription) > 50 {
 		return nil, errors.New("La descrizione non può superare i 50 caratteri")
 	}
 	// Controllo che l'utente esista
@@ -27,9 +27,9 @@ func (db *appdbimpl) CreateGroup(group Group, creatorId string) (*Group, error) 
 	// Creo il gruppo
 	groupId := generateID()
 	now := time.Now()
-	_ , err = db.c.Exec(`INSERT INTO groups
+	_, err = db.c.Exec(`INSERT INTO groups
 		(group_id, group_name, group_description, photo_url, created_at) VALUES (?, ?, ?, ?, ?)`,
-		groupId, group.GroupName, group.GroupDescription, group.PhotoUrl, now)
+		groupId, groupName, groupDescription, photoUrl, now)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante l'inserimento del gruppo: %w", err)
 	}
@@ -40,9 +40,14 @@ func (db *appdbimpl) CreateGroup(group Group, creatorId string) (*Group, error) 
 		return nil, fmt.Errorf("Errore durante l'aggiunta dell'utente nel gruppo: %w", err)
 	}
 
-	group.GroupId = groupId
-	group.CreatedAt = now
-	group.Members = []string{creatorId}
+	group := Group{
+		GroupId:          groupId,
+		GroupName:        groupName,
+		GroupDescription: groupDescription,
+		PhotoUrl:         photoUrl,
+		CreatedAt:        now,
+		Members:          []string{creatorId},
+	}
 	return &group, nil
 }
 
@@ -177,7 +182,7 @@ func (db *appdbimpl) AddToGroup(groupId string, userId string) error {
 		return errors.New("utente non trovato")
 	}
 
-	_ , err = db.c.Exec("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", groupId, userId)
+	_, err = db.c.Exec("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", groupId, userId)
 	if err != nil {
 		// 409
 		// Se l'errore contiene "UNIQUE constraint", significa che la coppia esiste già
@@ -208,7 +213,7 @@ func (db *appdbimpl) LeaveGroup(groupId string, userId string) error {
 		return errors.New("utente non trovato")
 	}
 
-	_ , err = db.c.Exec("DELETE FROM group_members WHERE group_id = ? AND member_id = ?", groupId, userId)
+	_, err = db.c.Exec("DELETE FROM group_members WHERE group_id = ? AND member_id = ?", groupId, userId)
 	if err != nil {
 		return errors.New("Utente non trovato oppure gruppo inesistente")
 	}

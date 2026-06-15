@@ -16,28 +16,28 @@ type AppDatabase interface {
 
 	// User
 	CreateUser(name string) (*User, error)
-	SetUserName(userId string, name string) error 
+	SetUserName(userId string, name string) error
 	GetUser(id string) (*User, error)
-	SetMyPhoto(userId string, photoUrl string) error 
+	SetMyPhoto(userId string, photoUrl string) error
 
 	// Chats
 	CreateChat(userId1 string, userId2 string) (*Chat, error)
-	GetMyChats(userId string) ([]Chat, error) 
-	//GetCurrentChat(chatId string, numMessages int) (*Chat, error)
+	GetMyChats(userId string) ([]Chat, error)
+	GetCurrentChat(chatId string, userId string, limit int) (*Chat, []Message, error)
 
 	// Messages
-	SendMessage(message Message) (*Message, error)
-	UpdateMessage(message Message, text string) (*Message, error)
-	DeleteMessage(messageId string, userId string) (string, error)
+	SendMessage(senderId string, chatId string, text string) (*Message, error)
+	UpdateMessage(messageId string, text string, senderId string) (*Message, error)
+	DeleteMessage(messageId string, userId string) error
 	UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error)
 	ForwardMessage(messageId string, targetChatId string, userId string) (*Message, error)
 
 	// Comments
-	CreateComment(comment Comment) (*Comment, error)
+	CreateComment(senderId string, messageId string, emoji string) (*Comment, error)
 	DeleteComment(commentId string, userId string) error
 
 	// Groups
-	CreateGroup(group Group, creatorId string) (*Group, error) 
+	CreateGroup(groupName string, groupDescription string, photoUrl string, creatorId string) (*Group, error)
 	GetGroup(groupId string) (*Group, error)
 	SetGroupName(groupId string, userId string, name string) error
 	SetGroupPhoto(groupId string, userId string, photoUrl string) error

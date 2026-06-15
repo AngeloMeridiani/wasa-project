@@ -25,14 +25,18 @@ func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 		return nil, fmt.Errorf("errore creazione chat: %w", err)
 	}
 
-	// Aggiungiamo i due utenti alla tabella chat_members 
-	_, err = tx.Exec("INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)", chatId, userId1, chatId, userId2)
+	if userId1 == userId2 {
+		_, err = tx.Exec("INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?)", chatId, userId1)
+	} else {
+		_, err = tx.Exec("INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?), (?, ?)", chatId, userId1, chatId, userId2)
+	}
+	
 	if err != nil {
 		return nil, fmt.Errorf("errore inserimento membri: %w", err)
 	}
 
 	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("errore commit: %w", err)
+			return nil, fmt.Errorf("errore commit: %w", err)
 	}
 
 	newChat := &Chat{
@@ -44,6 +48,70 @@ func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 	return newChat, nil
 }
 
+func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*Chat, []Message, error) {
+	chatQuery := `
+		SELECT 
+			c.chat_id, 
+			c.created_at, 
+			c.modified_at,
+			CASE 
+				WHEN c.type = 'group' THEN g.group_name
+				WHEN u.name IS NOT NULL THEN u.name
+				ELSE 'Messaggi Salvati'
+			END as title
+		FROM chats c
+		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
+		LEFT JOIN groups g ON c.chat_id = g.chat_id AND c.type = 'group'
+		LEFT JOIN chat_members cm2 ON c.chat_id = cm2.chat_id AND cm2.user_id != ? AND c.type = 'dm'
+		LEFT JOIN users u ON cm2.user_id = u.identifier
+		WHERE c.chat_id = ?
+	`
+	
+	var chat Chat
+	err := db.c.QueryRow(chatQuery, userId, userId, chatId).Scan(
+		&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &chat.Title,
+	)
+	if err != nil {
+		// Se c'è errore (es. sql.ErrNoRows), significa chat inesistente o accesso negato
+		return nil, nil, fmt.Errorf("chat non trovata o non autorizzato: %w", err)
+	}
+
+	msgQuery := `
+		SELECT message_id, sender_id, text, state, content_type, COALESCE(photo_url, ''), created_at, updated_at
+		FROM messages
+		WHERE chat_id = ?
+		ORDER BY created_at DESC
+		LIMIT ?
+	`
+	rows, err := db.c.Query(msgQuery, chatId, limit)
+	if err != nil {
+		return nil, nil, fmt.Errorf("errore lettura messaggi: %w", err)
+	}
+	defer rows.Close()
+
+	var messages []Message
+	for rows.Next() {
+		var m Message
+		var dbState, dbContentType string
+		err := rows.Scan(
+			&m.MessageId, &m.SenderId, &m.Text, &dbState, &dbContentType, &m.PhotoUrl, &m.CreatedAt, &m.UpdatedAt,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("errore scan messaggio: %w", err)
+		}
+		m.ChatId = chatId
+		m.State = MessageState(dbState)
+		m.ContentType = ContentType(dbContentType)
+		messages = append(messages, m)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, nil, err
+	}
+
+	return &chat, messages, nil
+}
+
 func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 	query := `
 		SELECT 
@@ -52,7 +120,8 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 			c.modified_at,
 			CASE 
 				WHEN c.type = 'group' THEN g.group_name
-				ELSE u.name
+				WHEN u.name IS NOT NULL THEN u.name
+				ELSE 'Messaggi Salvati'
 			END as title,
 			m.message_id,
 			m.sender_id,
@@ -90,7 +159,7 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 	for rows.Next() {
 		var chat Chat
 		var title sql.NullString
-		
+
 		var msgId, senderId, text, state, contentType, photoUrl sql.NullString
 		var msgCreatedAt, msgUpdatedAt sql.NullTime
 

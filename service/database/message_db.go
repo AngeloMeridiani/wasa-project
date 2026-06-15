@@ -7,21 +7,23 @@ import (
 	"time"
 )
 
-func (db *appdbimpl) SendMessage(message Message) (*Message,error) {
-	if message.State == "" {
-        message.State = StateSent
-    }
-    if message.ContentType == "" {
-        message.ContentType = TypeText
-    }
-	message.MessageId = generateID()
+func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*Message, error) {
 	now := time.Now()
-	message.CreatedAt = now
-	message.UpdatedAt = now
 	
+	message := Message{
+		MessageId:   generateID(),
+		ChatId:      chatId,
+		SenderId:    senderId,
+		Text:        text,
+		State:       StateSent,
+		ContentType: TypeText,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
 	result, err := db.c.Exec(`INSERT INTO messages 
 		(message_id, chat_id, sender_id, text, state, content_type ,photo_url, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		message.MessageId, message.ChatId, message.SenderId, message.Text, message.State, message.ContentType, message.PhotoUrl, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante la creazione del messaggio: %w", err)
@@ -31,92 +33,109 @@ func (db *appdbimpl) SendMessage(message Message) (*Message,error) {
 	if rows == 0 {
 		return nil, errors.New("Riga del messaggio non creata")
 	}
-	
+
 	result, err = db.c.Exec("UPDATE chats SET modified_at = ? WHERE chat_id = ?", now, message.ChatId)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante la modifica del timestamp della chat: %w", err)
 	}
-	return &message, nil 
+	return &message, nil
 }
 
-func (db *appdbimpl) UpdateMessage(message Message, text string) (*Message, error) {
+func (db *appdbimpl) UpdateMessage(messageId string, text string, senderId string) (*Message, error) {
 	if len(text) < 1 || len(text) > 1000 {
 		return nil, errors.New("Il testo deve avere lunghezza tra 1 e 1000 caratteri")
 	}
 	now := time.Now()
-	_, err := db.c.Exec("UPDATE messages SET text = ?, updated_at = ? WHERE messageId = ?",text, now, message.MessageId)
+	result, err := db.c.Exec("UPDATE messages SET text = ?, updated_at = ? WHERE message_id = ? AND sender_id = ?", text, now, messageId, senderId)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante la modifica del messaggio: %w", err)
-	}
-	message.UpdatedAt = now
-	return &message, nil
-}
-
-func (db *appdbimpl) DeleteMessage(messageId string, userId string) (string,error) {
-	
-	result, err := db.c.Exec("DELETE FROM messages WHERE message_id = ? AND sender_id = ?", messageId, userId)
-	if err != nil {
-		return "", fmt.Errorf("Errore durante la cancellazione del messaggio: %w", err)
 	}
 	
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return "", fmt.Errorf("Errore durante la cancellazione del messaggio; %w", err)
+		return nil, err
 	}
-	
+	if rows == 0 {
+		return nil, errors.New("Messaggio non trovato o non autorizzato")
+	}
+
+	var msg Message
+	var dbContentType string
+	var dbState string
+	err = db.c.QueryRow("SELECT message_id, chat_id, sender_id, text, state, content_type, COALESCE(photo_url, ''), created_at, updated_at FROM messages WHERE message_id = ?", messageId).Scan(&msg.MessageId, &msg.ChatId, &msg.SenderId, &msg.Text, &dbState, &dbContentType, &msg.PhotoUrl, &msg.CreatedAt, &msg.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("Errore nel recupero del messaggio aggiornato: %w", err)
+	}
+	msg.State = MessageState(dbState)
+	msg.ContentType = ContentType(dbContentType)
+
+	return &msg, nil
+}
+
+func (db *appdbimpl) DeleteMessage(messageId string, userId string) error {
+
+	result, err := db.c.Exec("DELETE FROM messages WHERE message_id = ? AND sender_id = ?", messageId, userId)
+	if err != nil {
+		return fmt.Errorf("Errore durante la cancellazione del messaggio: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("Errore durante la cancellazione del messaggio; %w", err)
+	}
+
 	// 404
 	if rows == 0 {
-		return "", errors.New("Messaggio non trovato")
+		return errors.New("Messaggio non trovato")
 	}
-	
-	return messageId, nil
+
+	return nil
 }
 
 func (db *appdbimpl) UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error) {
-    var currentStatus string
+	var currentStatus string
 	if newStatus != StateReceived && newStatus != StateRead {
-        return time.Time{}, fmt.Errorf("stato non valido: %s", string(newStatus))
-    }   
-    err := db.c.QueryRow("SELECT state FROM messages WHERE message_id = ?", messageId).Scan(&currentStatus)
-    if errors.Is(err, sql.ErrNoRows) {
+		return time.Time{}, fmt.Errorf("stato non valido: %s", string(newStatus))
+	}
+	err := db.c.QueryRow("SELECT state FROM messages WHERE message_id = ?", messageId).Scan(&currentStatus)
+	if errors.Is(err, sql.ErrNoRows) {
 		// 404
-        return time.Time{}, errors.New("messaggio non trovato") 
-    }
-    if err != nil {
-        return time.Time{}, fmt.Errorf("errore lettura stato: %w", err)
-    }
+		return time.Time{}, errors.New("messaggio non trovato")
+	}
+	if err != nil {
+		return time.Time{}, fmt.Errorf("errore lettura stato: %w", err)
+	}
 	curState := MessageState(currentStatus)
-    isValid := false
-    if curState == newStatus {
-        return time.Now(), nil 
-    }
-    switch curState {
-    case StateSent:
-        if newStatus == StateReceived || newStatus == StateRead {
-            isValid = true
-        }
-    case StateReceived:
-        if newStatus == StateRead {
-            isValid = true
-        }
-    case StateRead:
-        isValid = false
-    }
+	isValid := false
+	if curState == newStatus {
+		return time.Now(), nil
+	}
+	switch curState {
+		case StateSent:
+			if newStatus == StateReceived || newStatus == StateRead {
+				isValid = true
+			}
+		case StateReceived:
+			if newStatus == StateRead {
+				isValid = true
+			}
+		case StateRead:
+			isValid = false
+	}
 
-    if !isValid {
-        return time.Time{}, fmt.Errorf("transizione di stato non valida: da %s a %s", string(curState), string(newStatus)) // 400
-    }
+	if !isValid {
+		return time.Time{}, fmt.Errorf("transizione di stato non valida: da %s a %s", string(curState), string(newStatus)) // 400
+	}
 
-    now := time.Now()
-    // Aggiornamento updated_at 
-    _, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", string(newStatus), now, string(messageId))
-    if err != nil {
-        return time.Time{}, fmt.Errorf("errore aggiornamento stato: %w", err)
-    }
-    return now, nil
+	now := time.Now()
+	_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", string(newStatus), now, messageId)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("errore aggiornamento stato: %w", err)
+	}
+	return now, nil
 }
 
-func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, senderId string) (*Message,error) {
+func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, senderId string) (*Message, error) {
 	checkTargetUser := false
 	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?)", targetChatId, senderId).Scan(&checkTargetUser)
 	if err != nil {
@@ -128,7 +147,7 @@ func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, sende
 	var contentType string
 	var text string
 	var photoUrl string
-	
+
 	err = db.c.QueryRow("SELECT text, content_type, COALESCE(photo_url, '') FROM messages WHERE message_id = ?", messageId).Scan(&text, &contentType, &photoUrl)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("messaggio originale non trovato")
@@ -151,7 +170,7 @@ func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, sende
 
 	_, err = db.c.Exec(`INSERT INTO messages 
 		(message_id, chat_id, sender_id, text, state, content_type, photo_url, created_at, updated_at) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, 
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		newMessage.MessageId, newMessage.ChatId, newMessage.SenderId, newMessage.Text, string(newMessage.State), string(newMessage.ContentType), newMessage.PhotoUrl, newMessage.CreatedAt, newMessage.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante l'inoltro del messaggio: %w", err)
