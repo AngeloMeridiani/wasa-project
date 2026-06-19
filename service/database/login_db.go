@@ -9,9 +9,8 @@ import (
 // DoLogin cerca l'utente per nome. Se non c'è, lo crea.
 func (db *appdbimpl) DoLogin(username string) (string, error) {
 	var id string
-	queryCheck := `SELECT identifier FROM users WHERE name = ?`
 
-	err := db.c.QueryRow(queryCheck, username).Scan(&id)
+	err := db.c.QueryRow(`SELECT identifier FROM users WHERE name = ?`, username).Scan(&id)
 
 	if err == nil {
 		return id, nil

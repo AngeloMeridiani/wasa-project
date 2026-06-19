@@ -34,7 +34,7 @@ func (db *appdbimpl) CreateGroup(groupName string, groupDescription string, phot
 		return nil, fmt.Errorf("Errore durante l'inserimento del gruppo: %w", err)
 	}
 
-	//Inserisco tra i membri l'utente che ha creato il gruppo
+	// Inserisco tra i membri l'utente che ha creato il gruppo
 	err = db.AddToGroup(groupId, creatorId)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante l'aggiunta dell'utente nel gruppo: %w", err)

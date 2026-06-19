@@ -15,9 +15,11 @@ func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 	// Iniziamo una transazione
 	tx, err := db.c.Begin()
 	if err != nil {
-		return nil, fmt.Errorf("errore avvio transazione: %w", err)
+		return nil, fmt.Errorf("Errore avvio transazione: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	// Creiamo la chat nella tabella chats
 	_, err = tx.Exec("INSERT INTO chats (chat_id, created_at, modified_at, type) VALUES (?, ?, ?, ?)", chatId, createdAt, modifiedAt, "dm")

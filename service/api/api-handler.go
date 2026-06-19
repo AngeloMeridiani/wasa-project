@@ -23,9 +23,12 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.DELETE("/messages/:messageId", rt.authWrap(rt.deleteMessage))
 	rt.router.POST("/messages/:messageId/forward", rt.authWrap(rt.forwardMessage))
 
+	// Chats
+	rt.router.POST("/chats", rt.authWrap(rt.createChat))
+
 	// Comments
-	rt.router.POST("/messages:messageId/comments", rt.authWrap(rt.createComment))
-	rt.router.DELETE("/messages:messageId/comments", rt.authWrap(rt.deleteComment))
+	rt.router.POST("/messages/:messageId/comments", rt.authWrap(rt.createComment))
+	rt.router.DELETE("/messages/:messageId/comments", rt.authWrap(rt.deleteComment))
 
 	// Special routes
 	rt.router.GET("/liveness", rt.liveness)
