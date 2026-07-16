@@ -6,6 +6,11 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "3000:3000"
+    volumes:
+      - ./data:/datadb
+    environment:
+      - CFG_DB_FILENAME=/datadb/wasa.db
+      - CFG_DEBUG=true
     networks:
       - wasa-network
   frontend:
@@ -18,6 +23,7 @@ services:
       - backend
     networks:
       - wasa-network
+
 networks:
   wasa-network:
     driver: bridge
