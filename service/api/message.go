@@ -3,8 +3,11 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -78,6 +81,7 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	messageId := ps.ByName("messageId")
+	
 	var body struct {
 		TargetChatId string `json:"targetChatId"`
 	}
@@ -100,4 +104,37 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	// 200
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(forwardedMessage)
+}
+
+func (rt *_router) updateMessageStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	messageId := ps.ByName("messageId")
+
+	var body struct {
+		Status string `json:"status"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&body)
+	if err != nil {
+		http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	updatedAt, err := rt.db.UpdateMessageStatus(messageId, database.MessageState(body.Status))
+	if err != nil {
+		if strings.Contains(err.Error(), "messaggio non trovato") {
+			http.Error(w, "Messaggio non trovato", http.StatusNotFound)
+			return
+		}
+		if strings.Contains(err.Error(), "transizione") || strings.Contains(err.Error(), "non valido") {
+			http.Error(w, "Transizione di stato non valida", http.StatusBadRequest)
+			return
+		}
+		http.Error(w, "Errore interno del server", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(map[string]time.Time{"updatedAt": updatedAt})
 }

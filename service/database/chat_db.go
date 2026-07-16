@@ -74,7 +74,6 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 		&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &chat.Title,
 	)
 	if err != nil {
-		// Se c'è errore (es. sql.ErrNoRows), significa chat inesistente o accesso negato
 		return nil, nil, fmt.Errorf("chat non trovata o non autorizzato: %w", err)
 	}
 
