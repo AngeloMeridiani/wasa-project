@@ -1,14 +1,20 @@
 FROM golang:1.19
 
-WORKDIR
+WORKDIR /app
 
+#  Copia i requisiti Installa le dipendenze
 COPY go.mod go.sum ./
-
 RUN go mod download
 
-COPY
+# Copia il codice sorgente del backend
+COPY cmd/ ./cmd/ 
+COPY service/ ./service/
 
-RUN
+# Compila
+RUN go build -o /bin/webapi ./cmd/webapi
 
-CMD
+# Connessione alla porta 3000
+EXPOSE 3000
+
+CMD ["/bin/webapi"]
 
