@@ -110,7 +110,7 @@ paths:
               example:
                 userId: "abcd012345abcd012345"
                 name: "Maria"
-                userPhoto: "img_user_12345.jpg"
+                userPhoto: "img_user_1234567.jpg"
               schema:
                 $ref: '#/components/schemas/User'
         '400':
@@ -151,7 +151,7 @@ paths:
                 photoUrl:
                   type: string
                   description: L'URL dell'immagine
-                  example: "img_user_1235.png"
+                  example: "img_user_1234567.png"
                   pattern: '^[a-zA-Z0-9_]+\.(jpg|jpeg|png)$'
                   minLength: 10
                   maxLength: 50
@@ -163,7 +163,7 @@ paths:
               example:
                 userId: "abcd012345abcd012345"
                 name: "Maria"
-                userPhoto: "img_user_1235.png"
+                userPhoto: "img_user_1234567.png"
               schema:
                 $ref: '#/components/schemas/User'
         '400':
@@ -868,7 +868,7 @@ paths:
                 photoUrl:
                   type: string
                   description: L'URL dell'immagine
-                  example: "img_user_1235.png"
+                  example: "img_group_123456.jpg"
                   pattern: '^img_[a-z]+_\d+\.(jpg|jpeg|png)$'
                   minLength: 10
                   maxLength: 50
@@ -880,7 +880,7 @@ paths:
               example:
                 groupId: "group01234group01234"
                 groupName: "Programmazione Web"
-                groupPhoto: "img_group_12345.jpg"
+                groupPhoto: "img_group_123456.jpg"
                 members: ["abcd012345abcd012345"]
                 createdAt: "2024-04-01T10:00:00Z"
               schema: 
@@ -1041,7 +1041,7 @@ components:
         userPhoto:
           type: string
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."
-          example: "img_user_12345.jpg"
+          example: "img_user_1234567.jpg"
           pattern: ^img_[a-z]+_\d+\.(jpg|jpeg|png)$
           minLength: 20
           maxLength: 50
@@ -1212,7 +1212,7 @@ components:
         groupPhoto:
           type: string
           description: "ID o URL della risorsa immagine. Se null, l'utente non ha foto."
-          example: "img_group_12345.jpg"
+          example: "img_group_123456.jpg"
           pattern: '^img_[a-z]+_\d+\.(jpg|jpeg|png)$'
           minLength: 20
           maxLength: 50
