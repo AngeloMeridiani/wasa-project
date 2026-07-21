@@ -171,7 +171,6 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 		if err != nil {
 			return nil, fmt.Errorf("errore nello scan della chat: %w", err)
 		}
-
 		if title.Valid {
 			chat.Title = title.String
 		}

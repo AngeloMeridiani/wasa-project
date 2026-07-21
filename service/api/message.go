@@ -81,7 +81,7 @@ func (rt *_router) deleteMessage(w http.ResponseWriter, r *http.Request, ps http
 
 func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	messageId := ps.ByName("messageId")
-	
+
 	var body struct {
 		TargetChatId string `json:"targetChatId"`
 	}

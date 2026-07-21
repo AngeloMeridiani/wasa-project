@@ -30,11 +30,14 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*
 	}
 
 	rows, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("Errore nel recupero delle righe modificate: %w", err)
+	}
 	if rows == 0 {
 		return nil, errors.New("Riga del messaggio non creata")
 	}
 
-	result, err = db.c.Exec("UPDATE chats SET modified_at = ? WHERE chat_id = ?", now, message.ChatId)
+	_, err = db.c.Exec("UPDATE chats SET modified_at = ? WHERE chat_id = ?", now, message.ChatId)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante la modifica del timestamp della chat: %w", err)
 	}
