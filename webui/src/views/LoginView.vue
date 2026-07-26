@@ -32,13 +32,13 @@
 
                     this.$router.push("/home");
                 } 
-                catch (errormsg) {
-                    if (errormsg.response && errormsg.response.status == 400) {
+                catch (e) {
+                    if (e.response && e.response.status == 400) {
                         this.errormsg = "Nome non valido (deve essere compreso tra i 3 e 25 caratteri)";
                     } else {
-                        this.errormsg = "Errore durante di login.";
+                        this.errormsg = e.toString();
                     }
-                    console.error("Errore di login:", errormsg);
+                    console.error("Errore di login:", e);
                 } finally {
                     this.loading = false;
                 }
