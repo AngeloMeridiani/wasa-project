@@ -7,9 +7,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./data:/datadb
+      - ./data:/data
     environment:
-      - CFG_DB_FILENAME=/datadb/wasa.db
+      - CFG_DB_FILENAME=/data/wasa.db
       - CFG_DEBUG=true
     networks:
       - wasa-network

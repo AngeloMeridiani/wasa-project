@@ -1,10 +1,16 @@
 <script>
+import ChatsList from '@/components/ChatsList.vue';
+import ChatWindow from '@/components/ChatWindow.vue';
 export default {
+	components : {
+		ChatsList,
+		ChatWindow
+	},
 	data: function() {
 		return {
 			errormsg: null,
 			loading: false,
-			some_data: null,
+			availableEmojis: ['👍', '❤️', '💔', '😴', '😂', '😮', '😢', '🔥', '🤐']
 		}
 	},
 	methods: {
@@ -27,27 +33,15 @@ export default {
 </script>
 
 <template>
-	<div>
-		<div
-			class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-			<h1 class="h2">Home page</h1>
-			<div class="btn-toolbar mb-2 mb-md-0">
-				<div class="btn-group me-2">
-					<button type="button" class="btn btn-sm btn-outline-secondary" @click="refresh">
-						Refresh
-					</button>
-					<button type="button" class="btn btn-sm btn-outline-secondary" @click="exportList">
-						Export
-					</button>
-				</div>
-				<div class="btn-group me-2">
-					<button type="button" class="btn btn-sm btn-outline-primary" @click="newItem">
-						New
-					</button>
-				</div>
-			</div>
+	<div class="row">
+		
+		<div class="col-md-4 border-end">
+			<ChatsList />
 		</div>
-
+		
+		<div class="col-md-8">
+			<ChatWindow />
+		</div>
 		<ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
 	</div>
 </template>
