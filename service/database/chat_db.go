@@ -78,11 +78,14 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 	}
 
 	msgQuery := `
-		SELECT message_id, sender_id, text, state, content_type, COALESCE(photo_url, ''), created_at, updated_at
-		FROM messages
-		WHERE chat_id = ?
-		ORDER BY created_at DESC
-		LIMIT ?
+		SELECT * FROM (
+			SELECT message_id, sender_id, text, state, content_type, COALESCE(photo_url, ''), created_at, updated_at
+			FROM messages
+			WHERE chat_id = ?
+			ORDER BY created_at DESC
+			LIMIT ?
+		) AS sub
+		ORDER BY created_at ASC
 	`
 	rows, err := db.c.Query(msgQuery, chatId, limit)
 	if err != nil {

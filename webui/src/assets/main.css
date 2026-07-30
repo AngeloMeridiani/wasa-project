@@ -1,60 +1,77 @@
-.bd-placeholder-img {
-	font-size: 1.125rem;
-	text-anchor: middle;
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	user-select: none;
+:root {
+	/* Design Tokens */
+	--color-primary: #FF7E40;
+	--color-primary-hover: #E56A30;
+	--color-bg-app: #FAF9F6;
+	--color-bg-chat: #FDFCF0;
+	--color-bg-white: #FFFFFF;
+	--color-text-main: #333333;
+	--color-text-muted: #888888;
+	--color-border: #EAE6DF;
+	--color-message-out: #FF7E40;
+	--color-message-in: #FFFFFF;
+	
+	--font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	
+	--shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+	--shadow-md: 0 4px 6px rgba(0,0,0,0.05);
+	--shadow-msg: 0 1px 2px rgba(0,0,0,0.08);
+	
+	--radius-sm: 8px;
+	--radius-md: 12px;
+	--radius-lg: 16px;
+	--radius-xl: 24px;
 }
 
-@media (min-width: 768px) {
-	.bd-placeholder-img-lg {
-		font-size: 3.5rem;
-	}
+body {
+	font-family: var(--font-main);
+	background-color: var(--color-bg-app);
+	color: var(--color-text-main);
+	margin: 0;
+	padding: 0;
 }
 
-.b-example-divider {
-	height: 3rem;
-	background-color: rgba(0 0 0 / 10%);
-	border: solid rgba(0 0 0 / 15%);
-	border-width: 1px 0;
-	box-shadow: inset 0 0.5em 1.5em rgba(0 0 0 / 10%), inset 0 0.125em 0.5em rgba(0 0 0 / 15%);
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+::-webkit-scrollbar-thumb {
+	background: #D9D9D9;
+	border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: #B0B0B0;
 }
 
-.b-example-vr {
-	flex-shrink: 0;
-	width: 1.5rem;
-	height: 100vh;
+/* Global utility classes */
+.btn-primary-custom {
+	background-color: var(--color-primary);
+	color: white;
+	border: none;
+	border-radius: var(--radius-xl);
+	padding: 8px 16px;
+	font-weight: 500;
+	transition: all 0.2s ease;
+}
+.btn-primary-custom:hover {
+	background-color: var(--color-primary-hover);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-sm);
 }
 
-.bi {
-	vertical-align: -0.125em;
-	fill: currentcolor;
+.input-custom {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-xl);
+	padding: 10px 16px;
+	outline: none;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+	background-color: var(--color-bg-white);
 }
-
-.nav-scroller {
-	position: relative;
-	z-index: 2;
-	height: 2.75rem;
-	overflow-y: hidden;
-}
-
-.nav-scroller .nav {
-	display: flex;
-	flex-wrap: nowrap;
-	padding-bottom: 1rem;
-	margin-top: -1px;
-	overflow-x: auto;
-	text-align: center;
-	white-space: nowrap;
-	-webkit-overflow-scrolling: touch;
-}
-
-.feather {
-/*	width: 24px;
-	height: 24px;*/
-	stroke: currentColor;
-	stroke-width: 2;
-	stroke-linecap: round;
-	stroke-linejoin: round;
-	fill: none;
+.input-custom:focus {
+	border-color: var(--color-primary);
+	box-shadow: 0 0 0 3px rgba(255, 126, 64, 0.1);
 }

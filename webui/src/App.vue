@@ -6,62 +6,52 @@
 </script>
 
 <template>
-
-	<header v-if="$route.name !== 'login'" class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-		<a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="#/">WasaText</a>
-		<button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-			<span class="navbar-toggler-icon"></span>
-		</button>
+	<header v-if="$route.name !== 'login'" class="top-navbar">
+		<div class="container-fluid d-flex justify-content-between align-items-center px-4">
+			<a class="brand-logo" href="#/home">WasaText</a>
+			<div class="nav-links">
+				<RouterLink to="/home" class="nav-link-custom">Chat</RouterLink>
+				<RouterLink to="/profile" class="nav-link-custom">Profilo</RouterLink>
+				<RouterLink to="/login" class="nav-link-custom logout-link">Esci</RouterLink>
+			</div>
+		</div>
 	</header>
 
-	<div class="container-fluid">
-		<div class="row">
-			<nav v-if="$route.name !== 'login'" id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-				<div class="position-sticky pt-3 sidebar-sticky">
-					<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
-						<span>General</span>
-					</h6>
-					<ul class="nav flex-column">
-						<li class="nav-item">
-							<RouterLink to="/home" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#home"/></svg>
-								Home
-							</RouterLink>
-						</li>
-						<li class="nav-item">
-							<RouterLink to="/login" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#layout"/></svg>
-								Login
-							</RouterLink>
-						</li>
-						<li class="nav-item">
-							<RouterLink to="/profile" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#key"/></svg>
-								Profile
-							</RouterLink>
-						</li>
-					</ul>
-
-					<h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
-						<span>Secondary menu</span>
-					</h6>
-					<ul class="nav flex-column">
-						<li class="nav-item">
-							<RouterLink :to="'/some/' + 'variable_here' + '/path'" class="nav-link">
-								<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#file-text"/></svg>
-								Item 1
-							</RouterLink>
-						</li>
-					</ul>
-				</div>
-			</nav>
-
-			<main :class="$route.name !== 'login' ? 'col-md-9 ms-sm-auto col-lg-10 px-md-4' : 'col-12 px-0'">
-				<RouterView />
-			</main>
-		</div>
+	<div class="container-fluid p-0">
+		<RouterView />
 	</div>
 </template>
 
 <style>
+.top-navbar {
+	background-color: var(--color-bg-white);
+	border-bottom: 1px solid var(--color-border);
+	height: 60px;
+	display: flex;
+	align-items: center;
+}
+.brand-logo {
+	color: var(--color-primary);
+	font-weight: 600;
+	font-size: 1.4rem;
+	text-decoration: none;
+	letter-spacing: -0.5px;
+}
+.nav-links {
+	display: flex;
+	gap: 24px;
+}
+.nav-link-custom {
+	color: var(--color-text-main);
+	text-decoration: none;
+	font-weight: 500;
+	font-size: 0.95rem;
+	transition: color 0.2s ease;
+}
+.nav-link-custom:hover, .nav-link-custom.router-link-active {
+	color: var(--color-primary);
+}
+.logout-link {
+	color: var(--color-text-muted);
+}
 </style>
