@@ -13,39 +13,43 @@ export default {
 			chats : null,
 			messages : null,
 			selectedChatId: null,
+			selectedChatTitle: '',
 			newMessage: '',
 			forwardingMessageId: null,
-			availableEmojis: ['👍', '❤️', '💔', '😴', '😂', '😮', '😢', '🔥', '🤐']
+			availableEmojis: ['👍', '❤️', '💔', '😴', '😂', '😮', '😢', '🔥', '🤐'],
+			pollIntervalId: null
 		}
 	},
 	methods: {
-		async refresh() {
-			this.loading = true;
+		async refresh(silent = false) {
+			if (!silent) this.loading = true;
 			this.errormsg = null;
 			try {
 				let response = await this.$axios.get("/chats");
 				this.chats = response.data.chats || [];
 			} catch (e) {
-				this.errormsg = e.toString();
+				if (!silent) this.errormsg = e.toString();
 			}
-			this.loading = false;
+			if (!silent) this.loading = false;
 		},
-		async CreateChat(targetUserId) {
+		async CreateChat(targetUserName) {
 			this.loading = true;
 			this.errormsg = null;
-			if (!targetUserId || targetUserId.length !== 20) {
-				this.errormsg = "L'ID utente deve essere lungo esattamente 20 caratteri.";
-				this.loading = false;
-				return;
-			}
-			const isAlphanumeric = /^[a-zA-Z0-9]+$/.test(targetUserId);
-			if (!isAlphanumeric) {
-				this.errormsg = "L'ID utente può contenere solo lettere e numeri.";
+			if (!targetUserName || targetUserName.length < 3) {
+				this.errormsg = "Il nome utente deve avere almeno 3 caratteri.";
 				this.loading = false;
 				return;
 			}
 
 			try {
+				let userRes = await this.$axios.get(`/users?name=${targetUserName}`);
+				if (!userRes.data || userRes.data.length === 0) {
+					this.errormsg = "Utente non trovato.";
+					this.loading = false;
+					return;
+				}
+				
+				const targetUserId = userRes.data[0].userId;
 				const payload = {targetUserId: targetUserId};
 				let response = await this.$axios.post("/chats", payload);
 				
@@ -86,8 +90,8 @@ export default {
 				this.loading = false;
 			}
 		},
-		async selectChat(chatId) {
-			this.loading = true;
+		async selectChat(chatId, silent = false) {
+			if (!silent) this.loading = true;
 			this.errormsg = null;
 			try {
 				let response = await this.$axios.get(`/chats/${chatId}`);
@@ -96,11 +100,12 @@ export default {
 				} else {
 					this.messages = response.data.messages; 
 				}
-				this.selectedChatId = chatId; 
+				this.selectedChatId = chatId;
+				this.selectedChatTitle = response.data.title || '';
 			} catch (e) {
-				this.errormsg = e.toString();
+				if (!silent) this.errormsg = e.toString();
 			}
-			this.loading = false;
+			if (!silent) this.loading = false;
 		},
 		async sendMessage() {
             if (!this.selectedChatId || !this.newMessage.trim()) return;
@@ -166,22 +171,32 @@ export default {
 		},
 	},
 	mounted() {
-		this.refresh()
+		this.refresh();
+		this.pollIntervalId = setInterval(() => {
+			this.refresh(true);
+			if (this.selectedChatId) {
+				this.selectChat(this.selectedChatId, true);
+			}
+		}, 3000); // 3 secondi di intervallo
+	},
+	unmounted() {
+		if (this.pollIntervalId) {
+			clearInterval(this.pollIntervalId);
+		}
 	}
 }
 </script>
 
 <template>
 	<div class="chat-layout">
-		<div class="sidebar-container border-end">
+		<div class="sidebar-container" v-if="!selectedChatId">
 			<ChatsList :chats="chats" @select-chat="selectChat" @delete-chat="deleteChat" @create-chat="CreateChat" />
 		</div>
-		<div class="main-container">
-			<ChatWindow :messages="messages" :selectedChatId="selectedChatId" v-model:draftMessage="newMessage" @send-message="sendMessage" @delete-message="deleteMessage" @forward-message="forwardMessage" />
+		<div class="main-container" v-if="selectedChatId">
+			<ChatWindow :messages="messages" :selectedChatId="selectedChatId" :chatTitle="selectedChatTitle" v-model:draftMessage="newMessage" @send-message="sendMessage" @delete-message="deleteMessage" @forward-message="forwardMessage" @close-chat="selectedChatId = null" />
 		</div>
 		<ErrorMsg v-if="errormsg" :msg="errormsg" class="global-error"></ErrorMsg>
 		
-		<!-- Finestra di inoltro (Inline) -->
 		<div v-if="forwardingMessageId" class="modal-overlay" @click.self="forwardingMessageId = null">
 			<div class="modal-content">
 				<div class="modal-header">
@@ -213,13 +228,16 @@ export default {
 	width: 100%;
 }
 .sidebar-container {
-	width: 350px;
+	width: 100%;
+	max-width: 600px;
+	margin: 0 auto;
 	flex-shrink: 0;
-	background-color: var(--color-bg-white);
+	background-color: var(--color-bg-app);
 	display: flex;
 	flex-direction: column;
 	overflow-y: auto;
 }
+
 .main-container {
 	flex-grow: 1;
 	background-color: var(--color-bg-chat);
@@ -228,10 +246,12 @@ export default {
 	position: relative;
 }
 .global-error {
-	position: absolute;
-	top: 20px;
-	right: 20px;
-	z-index: 1000;
+	position: fixed;
+	bottom: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 9999;
+	box-shadow: var(--shadow-md);
 }
 
 /* Stili Modale in-line */

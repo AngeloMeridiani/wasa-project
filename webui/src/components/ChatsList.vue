@@ -9,7 +9,7 @@ export default {
     },
     data() {
         return {
-            targetUserId: "",
+            targetUserName: "",
             myUserId: localStorage.getItem("token")
         }
     }
@@ -30,10 +30,10 @@ export default {
             <input 
                 type="text" 
                 class="input-custom search-input" 
-                v-model="targetUserId" 
-                placeholder="ID utente (20 caratt.)" 
+                v-model="targetUserName" 
+                placeholder="Nome utente" 
             />
-            <button class="btn-primary-custom create-btn" @click="$emit('create-chat', targetUserId)">
+            <button class="btn-primary-custom create-btn" @click="$emit('create-chat', targetUserName)">
                 <svg class="feather" style="width: 16px; height: 16px;"><use href="/feather-sprite-v4.29.0.svg#plus"/></svg>
             </button>
         </div>
@@ -65,7 +65,7 @@ export default {
             <div v-else class="empty-state">
                 <svg class="feather empty-icon"><use href="/feather-sprite-v4.29.0.svg#message-square"/></svg>
                 <p>Nessuna chat disponibile.</p>
-                <small>Inserisci un ID utente per iniziare.</small>
+                <small>Inserisci un nome utente per avviare una nuova chat con lui.</small>
             </div>
         </div>
     </div>

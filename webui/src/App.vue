@@ -17,12 +17,19 @@
 		</div>
 	</header>
 
-	<div class="container-fluid p-0">
+	<div class="container-fluid p-0 app-wrapper">
 		<RouterView />
 	</div>
 </template>
 
 <style>
+html, body, #app {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
 .top-navbar {
 	background-color: var(--color-bg-white);
 	border-bottom: 1px solid var(--color-border);

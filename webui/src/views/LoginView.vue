@@ -68,7 +68,7 @@
                 <button 
                     class="btn-primary-custom login-btn" 
                     @click="doLogin" 
-                    :disabled="loading || username.length < 3"
+                    :disabled="loading"
                 >
                     <span v-if="loading">Attendi...</span>
                     <span v-else>Accedi</span>

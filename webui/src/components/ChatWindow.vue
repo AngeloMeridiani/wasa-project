@@ -49,25 +49,18 @@ export default {
 
 <template>
     <div class="chat-window-container">
-        
-        <div v-if="!selectedChatId" class="no-chat-selected">
-            <div class="welcome-box">
-                <svg class="feather welcome-icon"><use href="/feather-sprite-v4.29.0.svg#message-circle"/></svg>
-                <h2>WasaText per il Web</h2>
-                <p>Seleziona una chat dalla lista per iniziare a inviare messaggi.</p>
-            </div>
-        </div>
-        
-        <div v-else class="chat-active">
+        <div class="chat-active">
             <!-- Header della Chat -->
             <div class="chat-header">
                 <div class="chat-header-info">
+                    <button class="back-btn" @click="$emit('close-chat')" title="Indietro">
+                        <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#arrow-left"/></svg>
+                    </button>
                     <div class="chat-avatar-small">
                         {{ displayTitle.substring(0, 1).toUpperCase() }}
                     </div>
                     <div class="chat-title-group">
                         <h3 class="chat-title">{{ displayTitle }}</h3>
-                        <small class="chat-subtitle">ID: {{ selectedChatId.substring(0,8) }}...</small>
                     </div>
                 </div>
                 <div class="chat-header-actions">
@@ -107,7 +100,7 @@ export default {
                     </div>
                 </div>
                 <div v-else class="empty-chat">
-                    Nessun messaggio in questa chat. Scrivi qualcosa!
+                    Non è ancora stato inviato alcun messaggio in questa chat.
                 </div>
             </div>
 
@@ -141,35 +134,6 @@ export default {
     flex-direction: column;
 }
 
-/* Stato vuoto (Nessuna chat selezionata) */
-.no-chat-selected {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--color-bg-app);
-}
-.welcome-box {
-    text-align: center;
-    max-width: 400px;
-    padding: 40px;
-    background-color: var(--color-bg-white);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-}
-.welcome-icon {
-    width: 64px;
-    height: 64px;
-    color: var(--color-primary);
-    margin-bottom: 20px;
-}
-.welcome-box h2 {
-    font-weight: 300;
-    margin-bottom: 10px;
-}
-.welcome-box p {
-    color: var(--color-text-muted);
-}
 
 /* Chat attiva */
 .chat-active {
@@ -192,7 +156,26 @@ export default {
 .chat-header-info {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
+}
+.back-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-main);
+    cursor: pointer;
+    padding: 8px; /* Area cliccabile più ampia */
+    margin-right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+.back-btn svg {
+    width: 28px; /* Ingrandisce l'icona */
+    height: 28px;
+}
+.back-btn:hover {
+    color: var(--color-primary);
 }
 .chat-avatar-small {
     width: 40px;
@@ -396,6 +379,6 @@ export default {
 .send-btn svg {
     width: 18px;
     height: 18px;
-    margin-left: -2px; /* Centra otticamente l'icona paper-plane */
+    margin-left: -2px;
 }
 </style>
