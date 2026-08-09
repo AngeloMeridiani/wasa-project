@@ -75,7 +75,75 @@ paths:
                     minLength: 20
                     maxLength: 20
 
+  /users:
+    get:
+      tags: ["Users"]
+      summary: Cerca utenti
+      description: Restituisce una lista di utenti filtrati per nome.
+      operationId: getUsers
+      parameters:
+        - name: name
+          in: query
+          description: Il nome utente da cercare
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: Ricerca completata con successo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '400':
+          description: Parametro name mancante o non valido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /users/{userId}:
+    get:
+      tags: ["Users"]
+      summary: Ottieni profilo utente
+      description: Restituisce i dettagli del profilo di un utente specifico.
+      operationId: getUser
+      parameters: 
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Profilo utente restituito con successo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Non autorizzato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Accesso Negato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Utente non trovato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     put:
       tags: ["Users"]
       summary: Imposta nome utente
