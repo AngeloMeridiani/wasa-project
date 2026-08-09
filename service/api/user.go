@@ -97,3 +97,44 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]string{"message": "Foto profilo aggiornata correttamente"})
 }
+
+func (rt *_router) getUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	// Estraggo l'id dell'utente dall'URL
+	userId := ps.ByName("userId")
+
+	if ctx.UserId != userId {
+		// 403
+		http.Error(w, "Non sei autorizzato ad ottenere le informazioni di questo utente", http.StatusForbidden)
+		return
+	}
+
+	user, err := rt.db.GetUser(userId)
+	if err != nil {
+		// 404
+		http.Error(w, "Utente non trovato", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(user)
+}
+
+func (rt *_router) getUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "Parametro 'name' richiesto", http.StatusBadRequest)
+		return
+	}
+
+	users, err := rt.db.GetUsersByName(name)
+	if err != nil {
+		http.Error(w, "Errore interno del server", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(users)
+}
+

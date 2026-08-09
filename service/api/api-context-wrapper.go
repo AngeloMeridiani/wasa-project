@@ -38,7 +38,6 @@ func (rt *_router) wrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Re
 	}
 }
 func (rt *_router) authWrap(fn httpRouterHandler) func(http.ResponseWriter, *http.Request, httprouter.Params) {
-	// Restituiamo rt.wrap in modo da ereditare automaticamente il logger e l'UUID
 	return rt.wrap(func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 		// Estraiamo l'header "Authorization"
 		authHeader := r.Header.Get("Authorization")
@@ -56,7 +55,7 @@ func (rt *_router) authWrap(fn httpRouterHandler) func(http.ResponseWriter, *htt
 
 		token := strings.TrimPrefix(authHeader, prefix)
 
-		// Verifichiamo che il token esista (il token coincide con l'identifier dell'utente)
+		// (il token coincide con l'id dell'utente)
 		_, err := rt.db.GetUser(token)
 		if err != nil {
 			http.Error(w, "Token non valido o utente non trovato", http.StatusUnauthorized)
@@ -66,7 +65,6 @@ func (rt *_router) authWrap(fn httpRouterHandler) func(http.ResponseWriter, *htt
 		// Aggiungiamo l'ID utente al contesto, così ogni handler saprà chi sta chiamando l'API
 		ctx.UserId = token
 
-		// Call the next handler in chain (usually, the handler function for the path)
 		fn(w, r, ps, ctx)
 	})
 }

@@ -12,6 +12,47 @@ func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 	createdAt := time.Now()
 	modifiedAt := time.Now()
 
+	// Check if a DM chat already exists
+	var existingChatId string
+	var extCreatedAt, extModifiedAt time.Time
+	var checkErr error
+
+	if userId1 == userId2 {
+		checkErr = db.c.QueryRow(`
+			SELECT c.chat_id, c.created_at, c.modified_at
+			FROM chats c
+			WHERE c.type = 'dm'
+			AND (SELECT COUNT(*) FROM chat_members WHERE chat_id = c.chat_id) = 1
+			AND (SELECT user_id FROM chat_members WHERE chat_id = c.chat_id LIMIT 1) = ?
+		`, userId1).Scan(&existingChatId, &extCreatedAt, &extModifiedAt)
+	} else {
+		checkErr = db.c.QueryRow(`
+			SELECT c.chat_id, c.created_at, c.modified_at
+			FROM chats c
+			JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
+			JOIN chat_members cm2 ON c.chat_id = cm2.chat_id AND cm2.user_id = ?
+			WHERE c.type = 'dm'
+		`, userId1, userId2).Scan(&existingChatId, &extCreatedAt, &extModifiedAt)
+	}
+
+	if checkErr == nil && existingChatId != "" {
+		var title string
+		if userId1 == userId2 {
+			title = "Messaggi Salvati"
+		} else {
+			err := db.c.QueryRow("SELECT name FROM users WHERE identifier = ?", userId2).Scan(&title)
+			if err != nil {
+				title = existingChatId
+			}
+		}
+		return &Chat{
+			ChatId:     existingChatId,
+			Title:      title,
+			CreatedAt:  extCreatedAt,
+			ModifiedAt: extModifiedAt,
+		}, nil
+	}
+
 	// Iniziamo una transazione
 	tx, err := db.c.Begin()
 	if err != nil {
@@ -41,8 +82,19 @@ func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
 		return nil, fmt.Errorf("errore commit: %w", err)
 	}
 
+	var title string
+	if userId1 == userId2 {
+		title = "Utente senza nome"
+	} else {
+		err = db.c.QueryRow("SELECT name FROM users WHERE identifier = ?", userId2).Scan(&title)
+		if err != nil {
+			title = chatId // fallback
+		}
+	}
+
 	newChat := &Chat{
 		ChatId:     chatId,
+		Title:      title,
 		CreatedAt:  createdAt,
 		ModifiedAt: modifiedAt,
 	}

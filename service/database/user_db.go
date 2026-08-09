@@ -100,3 +100,29 @@ func (db *appdbimpl) SetMyPhoto(id string, photoUrl string) error {
 
 	return nil
 }
+
+func (db *appdbimpl) GetUsersByName(name string) ([]User, error) {
+	query := "SELECT identifier, name, COALESCE(photo_url, '') FROM users WHERE name LIKE ? LIMIT 20"
+	rows, err := db.c.Query(query, "%"+name+"%")
+	if err != nil {
+		return nil, fmt.Errorf("errore ricerca utenti: %w", err)
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var u User
+		if err := rows.Scan(&u.UserId, &u.Name, &u.UserPhoto); err != nil {
+			return nil, fmt.Errorf("errore scan utente: %w", err)
+		}
+		users = append(users, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if users == nil {
+		users = []User{}
+	}
+	return users, nil
+}

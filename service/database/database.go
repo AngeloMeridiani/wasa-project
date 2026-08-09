@@ -18,6 +18,7 @@ type AppDatabase interface {
 	CreateUser(name string) (*User, error)
 	SetUserName(userId string, name string) error
 	GetUser(id string) (*User, error)
+	GetUsersByName(name string) ([]User, error)
 	SetMyPhoto(userId string, photoUrl string) error
 
 	// Chats
