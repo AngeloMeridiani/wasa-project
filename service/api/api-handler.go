@@ -16,7 +16,7 @@ func (rt *_router) Handler() http.Handler {
 	// Users
 	rt.router.GET("/users", rt.authWrap(rt.getUsers))
 	rt.router.GET("/users/:userId", rt.authWrap(rt.getUser))
-	rt.router.PUT("/users/:userId", rt.authWrap(rt.SetMyUserName))
+	rt.router.PUT("/users/:userId/name", rt.authWrap(rt.SetMyUserName))
 	rt.router.PUT("/users/:userId/photo", rt.authWrap(rt.setMyPhoto))
 
 	// Messages

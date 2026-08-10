@@ -144,6 +144,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /users/{userId}/name:
     put:
       tags: ["Users"]
       summary: Imposta nome utente
