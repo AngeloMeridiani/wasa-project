@@ -23,6 +23,7 @@ type AppDatabase interface {
 
 	// Chats
 	CreateChat(userId1 string, userId2 string) (*Chat, error)
+	DeleteChat(chatId string, userId string) error
 	GetMyChats(userId string) ([]Chat, error)
 	GetCurrentChat(chatId string, userId string, limit int) (*Chat, []Message, error)
 
@@ -38,7 +39,7 @@ type AppDatabase interface {
 	DeleteComment(commentId string, userId string) error
 
 	// Groups
-	CreateGroup(groupName string, groupDescription string, photoUrl string, creatorId string) (*Group, error)
+	CreateGroup(groupName string, groupDescription string, photoUrl string, creatorId string, members []string) (*Group, error)
 	GetGroup(groupId string) (*Group, error)
 	SetGroupName(groupId string, userId string, name string) error
 	SetGroupPhoto(groupId string, userId string, photoUrl string) error
@@ -58,7 +59,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		return nil, errors.New("database is required when building a AppDatabase")
 	}
 
-	// 1. Tabella USERS
+	// Tabella USERS
 	sqlUsers := `
 	CREATE TABLE IF NOT EXISTS users (
 		identifier TEXT PRIMARY KEY,
@@ -66,7 +67,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		photo_url TEXT 
 	);`
 
-	// 2. Tabella CHATS
+	// Tabella CHATS
 	sqlChats := `
 	CREATE TABLE IF NOT EXISTS chats (
 		chat_id TEXT PRIMARY KEY,
@@ -77,7 +78,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 		FOREIGN KEY(last_message_id) REFERENCES messages(message_id) ON DELETE SET NULL
 	);`
 
-	// 3. Tabella GROUPS
+	// Tabella GROUPS
 	sqlGroups := `
 		CREATE TABLE IF NOT EXISTS groups (
 			group_id TEXT PRIMARY KEY,
@@ -89,7 +90,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			FOREIGN KEY(chat_id) REFERENCES chats(chat_id) ON DELETE CASCADE
 		);`
 
-	// 4. Tabella MESSAGES
+	// Tabella MESSAGES
 	sqlMessages := `
 		CREATE TABLE IF NOT EXISTS messages (
 			message_id TEXT PRIMARY KEY,
@@ -105,7 +106,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			FOREIGN KEY(sender_id) REFERENCES users(identifier)
 		);`
 
-	// 5. Tabella CHAT_MEMBERS
+	// Tabella CHAT_MEMBERS
 	sqlMembers := `
 		CREATE TABLE IF NOT EXISTS chat_members (
 			chat_id TEXT,
@@ -117,7 +118,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			FOREIGN KEY(user_id) REFERENCES users(identifier) ON DELETE CASCADE
 		);`
 
-	// 6. Tabella COMMENTS
+	// Tabella COMMENTS
 	sqlComments := `
 		CREATE TABLE IF NOT EXISTS comments (
 			comment_id TEXT PRIMARY KEY,
@@ -130,7 +131,18 @@ func New(db *sql.DB) (AppDatabase, error) {
 			FOREIGN KEY(sender_id) REFERENCES users(identifier)
 		);`
 
-	queries := []string{sqlUsers, sqlChats, sqlGroups, sqlMessages, sqlMembers, sqlComments}
+	// Tabella DELETED_CHATS
+	sqlDeletedChats := `
+		CREATE TABLE IF NOT EXISTS deleted_chats (
+			chat_id TEXT NOT NULL,
+			user_id TEXT NOT NULL,
+			deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY(chat_id, user_id),
+			FOREIGN KEY(chat_id) REFERENCES chats(chat_id) ON DELETE CASCADE,
+			FOREIGN KEY(user_id) REFERENCES users(identifier)
+		);`
+
+	queries := []string{sqlUsers, sqlChats, sqlGroups, sqlMessages, sqlMembers, sqlComments, sqlDeletedChats}
 
 	for _, q := range queries {
 		if _, err := db.Exec(q); err != nil {

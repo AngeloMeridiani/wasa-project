@@ -17,7 +17,16 @@ export default {
 			newMessage: '',
 			forwardingMessageId: null,
 			availableEmojis: ['👍', '❤️', '💔', '😴', '😂', '😮', '😢', '🔥', '🤐'],
-			pollIntervalId: null
+			pollIntervalId: null,
+			isCreatingGroup: false,
+			groupSearchQuery: '',
+			groupSearchResults: [],
+			newGroupData: {
+				name: '',
+				description: '',
+				photoUrl: '',
+				selectedMembers: []
+			}
 		}
 	},
 	methods: {
@@ -169,6 +178,46 @@ export default {
 				this.loading = false;
 			}
 		},
+		async createGroup(usersList) {
+			this.loading = true;
+			this.errormsg = null;
+			try {
+				const body = { groupName, groupDescription, groupPhoto, userId};
+				let response = await this.$axios.post(`/groups`, body);
+			}
+			catch(e) {
+
+			}
+			finally {
+				this.loading = false;
+			}
+		},
+		async deleteGroup() {
+			this.loading = true;
+			this.errormsg = null;
+			try {
+
+			}
+			catch(e) {
+
+			}
+			finally {
+				this.loading = false;
+			}
+		},
+		async searchUsersForGroup() {
+			this.loading = true;
+			this,errormsg = null;
+			try {
+				let response = await this.$axios.get("/users", )
+			}
+			catch(e) {
+				this.errmsg = e.toString()
+			}
+			finally {
+				this.loading = false;
+			}
+		},
 	},
 	mounted() {
 		this.refresh();
@@ -177,7 +226,7 @@ export default {
 			if (this.selectedChatId) {
 				this.selectChat(this.selectedChatId, true);
 			}
-		}, 3000); // 3 secondi di intervallo
+		}, 3000);
 	},
 	unmounted() {
 		if (this.pollIntervalId) {
@@ -188,14 +237,24 @@ export default {
 </script>
 
 <template>
-	<div class="chat-layout">
-		<div class="sidebar-container" v-if="!selectedChatId">
-			<ChatsList :chats="chats" @select-chat="selectChat" @delete-chat="deleteChat" @create-chat="CreateChat" />
+	<LoadingSpinner :loading="loading">
+		<div class="chat-layout">
+			<div class="sidebar-container" v-if="!selectedChatId">
+				<ChatsList 
+					:chats="chats" 
+					@select-chat="selectChat"
+					@delete-chat="deleteChat"
+					@create-chat="CreateChat"
+					@open-create-group="isCreatingGroup = true"
+				/>
+			</div>
+			<div class="main-container" v-if="selectedChatId">
+				<ChatWindow :messages="messages" :selectedChatId="selectedChatId" :chatTitle="selectedChatTitle" v-model:draftMessage="newMessage" @send-message="sendMessage" @delete-message="deleteMessage" @forward-message="forwardMessage" @close-chat="selectedChatId = null" />
+			</div>
 		</div>
-		<div class="main-container" v-if="selectedChatId">
-			<ChatWindow :messages="messages" :selectedChatId="selectedChatId" :chatTitle="selectedChatTitle" v-model:draftMessage="newMessage" @send-message="sendMessage" @delete-message="deleteMessage" @forward-message="forwardMessage" @close-chat="selectedChatId = null" />
-		</div>
-		<ErrorMsg v-if="errormsg" :msg="errormsg" class="global-error"></ErrorMsg>
+	</LoadingSpinner>
+
+	<ErrorMsg v-if="errormsg" :msg="errormsg" class="global-error"></ErrorMsg>
 		
 		<div v-if="forwardingMessageId" class="modal-overlay" @click.self="forwardingMessageId = null">
 			<div class="modal-content">
@@ -217,7 +276,63 @@ export default {
 			</div>
 		</div>
 
-	</div>
+		<!-- Modal Crea Gruppo -->
+		<div v-if="isCreatingGroup" class="modal-overlay" @click.self="isCreatingGroup = false">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>Crea Nuovo Gruppo</h3>
+					<button class="close-btn" @click="isCreatingGroup = false">
+						<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#x"/></svg>
+					</button>
+				</div>
+				<div class="modal-body group-creation-body">
+					<div class="form-group">
+						<input type="text" class="input-custom full-width" v-model="newGroupData.name" placeholder="Nome del gruppo (obbligatorio)">
+					</div>
+					<div class="form-group">
+						<input type="text" class="input-custom full-width" v-model="newGroupData.description" placeholder="Descrizione del gruppo">
+					</div>
+					
+					<hr>
+					<h4>Aggiungi Membri (Opzionale)</h4>
+					<div class="search-users-box">
+						<input
+							type="text"
+							class="input-custom full-width search-input"
+							v-model="groupSearchQuery"
+							placeholder="Cerca utenti per nome..."
+							@keyup="searchUsersForGroup"
+						/>
+					</div>
+					
+					<div class="users-list-scrollable" v-if="groupSearchResults.length > 0">
+						<div v-for="user in groupSearchResults" :key="user.userId" class="user-selection-item" @click="toggleMemberSelection(user.userId)">
+							<input 
+								type="checkbox" 
+								:checked="newGroupData.selectedMembers.includes(user.userId)"
+								@change.stop="toggleMemberSelection(user.userId)"
+							>
+							<div class="user-info">
+								<span class="user-name">{{ user.name }}</span>
+								<span class="user-id">#{{ user.userId.substring(0,6) }}</span>
+							</div>
+						</div>
+					</div>
+					<p v-else class="no-chats">Nessun utente trovato.</p>
+					
+					<div class="selected-count" v-if="newGroupData.selectedMembers.length > 0">
+						{{ newGroupData.selectedMembers.length }} membri selezionati
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn-primary-custom full-width" @click="createGroup" :disabled="loading">
+						<span v-if="loading">Creazione...</span>
+						<span v-else>Crea Gruppo</span>
+					</button>
+				</div>
+			</div>
+		</div>
+
 </template>
 
 <style scoped>
@@ -289,4 +404,22 @@ export default {
     cursor: pointer; font-weight: 500; transition: background-color 0.2s; color: var(--color-text-main);
 }
 .simple-chat-item:hover { background-color: #F5F3ED; color: var(--color-primary); }
+
+/* Stili Modale Gruppo */
+.group-creation-body { padding: 16px 20px; }
+.form-group { margin-bottom: 12px; }
+.full-width { width: 100%; box-sizing: border-box; }
+.search-users-box { margin-bottom: 12px; }
+.users-list-scrollable { max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
+.user-selection-item { 
+	display: flex; align-items: center; padding: 10px 12px; 
+	border-bottom: 1px solid var(--color-border); cursor: pointer; transition: background 0.2s;
+}
+.user-selection-item:last-child { border-bottom: none; }
+.user-selection-item:hover { background-color: var(--color-bg-chat); }
+.user-info { display: flex; flex-direction: column; margin-left: 10px; }
+.user-name { font-weight: 500; font-size: 0.95rem; }
+.user-id { font-size: 0.8rem; color: var(--color-text-muted); }
+.selected-count { text-align: center; font-size: 0.9rem; color: var(--color-primary); margin-top: 10px; font-weight: 500; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--color-border); }
 </style>

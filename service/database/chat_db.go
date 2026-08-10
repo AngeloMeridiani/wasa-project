@@ -202,10 +202,13 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 			) m2 ON m1.chat_id = m2.chat_id AND m1.created_at = m2.max_created_at
 			GROUP BY m1.chat_id 
 		) m ON c.chat_id = m.chat_id
+		WHERE c.chat_id NOT IN (
+			SELECT chat_id FROM deleted_chats WHERE user_id = ?
+		)
 		ORDER BY c.modified_at DESC
 	`
 
-	rows, err := db.c.Query(query, userId, userId)
+	rows, err := db.c.Query(query, userId, userId, userId)
 	if err != nil {
 		return nil, fmt.Errorf("errore nella query GetMyChats: %w", err)
 	}
@@ -262,4 +265,26 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 	}
 
 	return chats, nil
+}
+
+func (db *appdbimpl) DeleteChat(chatId string, userId string) error {
+	var chatType string
+	err := db.c.QueryRow("SELECT type FROM chats WHERE chat_id = ?", chatId).Scan(&chatType)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("chat non trovata")
+		}
+		return fmt.Errorf("errore ricerca chat: %w", err)
+	}
+
+	if chatType == "group" {
+		return db.LeaveGroup(chatId, userId)
+	}
+
+	// For DMs, soft delete by inserting into deleted_chats
+	_, err = db.c.Exec("INSERT OR IGNORE INTO deleted_chats (chat_id, user_id) VALUES (?, ?)", chatId, userId)
+	if err != nil {
+		return fmt.Errorf("errore eliminazione chat: %w", err)
+	}
+	return nil
 }

@@ -387,6 +387,22 @@ paths:
                 $ref: '#/components/schemas/Error'
           
   /chats/{chatId}:
+    delete:
+      tags: ["Chats"]
+      summary: Elimina una chat o abbandona un gruppo
+      description: Nasconde una chat singola per l'utente, oppure permette di abbandonare un gruppo.
+      operationId: deleteChat
+      parameters:
+        - $ref: '#/components/parameters/ChatId'
+      responses:
+        '204':
+          description: Chat eliminata con successo
+        '404':
+          description: Chat non trovata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
     get:
       tags: ["Chats"]
       summary: Ottieni una conversazione specifica
@@ -814,6 +830,11 @@ paths:
                   example: "abcdf01234abcdf01234"
                   minLength: 20
                   maxLength: 20
+                members:
+                  type: array
+                  description: Lista opzionale di ID degli utenti da aggiungere inizialmente al gruppo
+                  items:
+                    type: string
       responses:
         '201':
           description: Gruppo creato con successo

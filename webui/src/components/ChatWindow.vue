@@ -34,7 +34,7 @@ export default {
             }
         },
         displayTitle() {
-            return this.chatTitle || this.selectedChatId || 'Chat Sconosciuta';
+            return this.chatTitle || 'Chat Senza Nome';
         }
     },
     methods: {

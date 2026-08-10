@@ -20,10 +20,6 @@ export default {
     <div class="chats-list-container">
         <div class="chats-header">
             <h3 class="chats-title">Chat</h3>
-            <div class="user-id-badge" title="Questo è il tuo ID da condividere con altri">
-                <svg class="feather" style="width: 14px; height: 14px; margin-right: 4px;"><use href="/feather-sprite-v4.29.0.svg#user"/></svg>
-                ID: {{ myUserId ? myUserId.substring(0, 6) + '...' : 'Guest' }}
-            </div>
         </div>
         
         <div class="create-chat-box">
@@ -32,9 +28,13 @@ export default {
                 class="input-custom search-input" 
                 v-model="targetUserName" 
                 placeholder="Nome utente" 
+                @keyup.enter="$emit('create-chat', targetUserName)"
             />
-            <button class="btn-primary-custom create-btn" @click="$emit('create-chat', targetUserName)">
-                <svg class="feather" style="width: 16px; height: 16px;"><use href="/feather-sprite-v4.29.0.svg#plus"/></svg>
+            <button class="btn-primary-custom create-btn" @click="$emit('create-chat', targetUserName)" title="Crea Nuova Chat Singola">
+                <svg class="feather" style="width: 16px; height: 16px;"><use href="/feather-sprite-v4.29.0.svg#user-plus"/></svg>
+            </button>
+            <button class="btn-primary-custom create-btn group-btn" @click="$emit('open-create-group')" title="Crea Nuovo Gruppo">
+                <svg class="feather" style="width: 16px; height: 16px;"><use href="/feather-sprite-v4.29.0.svg#users"/></svg>
             </button>
         </div>
 

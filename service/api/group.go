@@ -11,10 +11,11 @@ import (
 
 func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	var body struct {
-		GroupName        string `json:"groupName"`
-		GroupDescription string `json:"groupDescription"`
-		UserId           string `json:"userId"`
-		PhotoUrl         string `json:"photoUrl,omitempty"`
+		GroupName        string   `json:"groupName"`
+		GroupDescription string   `json:"groupDescription"`
+		UserId           string   `json:"userId"`
+		PhotoUrl         string   `json:"photoUrl,omitempty"`
+		Members          []string `json:"members,omitempty"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&body)
@@ -29,7 +30,7 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httpro
 		creatorId = ctx.UserId
 	}
 
-	newGroup, err := rt.db.CreateGroup(body.GroupName, body.GroupDescription, body.PhotoUrl, creatorId)
+	newGroup, err := rt.db.CreateGroup(body.GroupName, body.GroupDescription, body.PhotoUrl, creatorId, body.Members)
 	if err != nil {
 		if strings.Contains(err.Error(), "utente creatore non trovato") {
 			http.Error(w, "Utente creatore non trovato", http.StatusNotFound)

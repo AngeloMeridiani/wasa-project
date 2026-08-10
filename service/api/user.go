@@ -122,10 +122,6 @@ func (rt *_router) getUser(w http.ResponseWriter, r *http.Request, ps httprouter
 
 func (rt *_router) getUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	name := r.URL.Query().Get("name")
-	if name == "" {
-		http.Error(w, "Parametro 'name' richiesto", http.StatusBadRequest)
-		return
-	}
 
 	users, err := rt.db.GetUsersByName(name)
 	if err != nil {
@@ -137,4 +133,3 @@ func (rt *_router) getUsers(w http.ResponseWriter, r *http.Request, ps httproute
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(users)
 }
-

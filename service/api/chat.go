@@ -90,3 +90,19 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(response)
 }
+
+func (rt *_router) deleteChat(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	chatId := ps.ByName("chatId")
+
+	err := rt.db.DeleteChat(chatId, ctx.UserId)
+	if err != nil {
+		if strings.Contains(err.Error(), "non trovata") {
+			http.Error(w, "Chat non trovata", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Errore interno durante l'eliminazione della chat", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

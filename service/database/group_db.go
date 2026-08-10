@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (db *appdbimpl) CreateGroup(groupName string, groupDescription string, photoUrl string, creatorId string) (*Group, error) {
+func (db *appdbimpl) CreateGroup(groupName string, groupDescription string, photoUrl string, creatorId string, members []string) (*Group, error) {
 	if len(groupName) < 1 || len(groupName) > 30 {
 		return nil, errors.New("Il nome del gruppo deve avere tra 1 e 30 caratteri")
 	}
@@ -24,20 +24,56 @@ func (db *appdbimpl) CreateGroup(groupName string, groupDescription string, phot
 		return nil, errors.New("utente creatore non trovato")
 	}
 
-	// Creo il gruppo
-	groupId := generateID()
+	// inizio transazione
+	tx, err := db.c.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("Errore avvio transazione: %w", err)
+	}
+	defer tx.Rollback()
+
 	now := time.Now()
-	_, err = db.c.Exec(`INSERT INTO groups
-		(group_id, group_name, group_description, photo_url, created_at) VALUES (?, ?, ?, ?, ?)`,
-		groupId, groupName, groupDescription, photoUrl, now)
+	chatId := generateID()
+	groupId := generateID()
+
+	// Creo la chat associata al gruppo
+	_, err = tx.Exec("INSERT INTO chats (chat_id, created_at, modified_at, type) VALUES (?, ?, ?, ?)", chatId, now, now, "group")
+	if err != nil {
+		return nil, fmt.Errorf("Errore durante la creazione della chat del gruppo: %w", err)
+	}
+
+	// Creo il gruppo
+	_, err = tx.Exec(`INSERT INTO groups
+		(group_id, group_name, group_description, photo_url, created_at, chat_id) VALUES (?, ?, ?, ?, ?, ?)`,
+		groupId, groupName, groupDescription, photoUrl, now, chatId)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante l'inserimento del gruppo: %w", err)
 	}
 
-	// Inserisco tra i membri l'utente che ha creato il gruppo
-	err = db.AddToGroup(groupId, creatorId)
+	// Aggiungo i membri
+	if len(members) > 0 {
+		var valueStrings []string
+		var valueArgs []interface{}
+		for _, m := range members {
+			valueStrings = append(valueStrings, "(?, ?)")
+			valueArgs = append(valueArgs, chatId, m)
+		}
+		query := fmt.Sprintf(`INSERT OR IGNORE INTO chat_members (chat_id, user_id) VALUES %s`, strings.Join(valueStrings, ","))
+		_, err = tx.Exec(query, valueArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("Errore durante l'aggiunta dei membri: %w", err)
+		}
+	}
+
+	// Aggiungo il creatore come admin
+	_, err = tx.Exec("INSERT INTO chat_members (chat_id, user_id, role) VALUES (?, ?, 'admin')",
+		chatId, creatorId)
 	if err != nil {
-		return nil, fmt.Errorf("Errore durante l'aggiunta dell'utente nel gruppo: %w", err)
+		return nil, fmt.Errorf("Errore durante l'aggiunta del creatore nel gruppo: %w", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("Errore commit transazione: %w", err)
 	}
 
 	group := Group{
@@ -182,7 +218,13 @@ func (db *appdbimpl) AddToGroup(groupId string, userId string) error {
 		return errors.New("utente non trovato")
 	}
 
-	_, err = db.c.Exec("INSERT INTO group_members (group_id, user_id) VALUES (?, ?)", groupId, userId)
+	var chatId string
+	err = db.c.QueryRow("SELECT chat_id FROM groups WHERE group_id = ?", groupId).Scan(&chatId)
+	if err != nil {
+		return errors.New("chat del gruppo non trovata")
+	}
+
+	_, err = db.c.Exec("INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?)", chatId, userId)
 	if err != nil {
 		// 409
 		// Se l'errore contiene "UNIQUE constraint", significa che la coppia esiste già
@@ -213,7 +255,13 @@ func (db *appdbimpl) LeaveGroup(groupId string, userId string) error {
 		return errors.New("utente non trovato")
 	}
 
-	_, err = db.c.Exec("DELETE FROM group_members WHERE group_id = ? AND member_id = ?", groupId, userId)
+	var chatId string
+	err = db.c.QueryRow("SELECT chat_id FROM groups WHERE group_id = ?", groupId).Scan(&chatId)
+	if err != nil {
+		return errors.New("chat del gruppo non trovata")
+	}
+
+	_, err = db.c.Exec("DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?", chatId, userId)
 	if err != nil {
 		return errors.New("Utente non trovato oppure gruppo inesistente")
 	}

@@ -30,6 +30,7 @@ func (rt *_router) Handler() http.Handler {
 	rt.router.POST("/chats", rt.authWrap(rt.createChat))
 	rt.router.GET("/chats", rt.authWrap(rt.getMyConversations))
 	rt.router.GET("/chats/:chatId", rt.authWrap(rt.getConversation))
+	rt.router.DELETE("/chats/:chatId", rt.authWrap(rt.deleteChat))
 
 	// Comments
 	rt.router.POST("/messages/:messageId/comments", rt.authWrap(rt.createComment))
