@@ -873,7 +873,7 @@ paths:
                 $ref: '#/components/schemas/Error'
 
 
-  /groups/{groupId}:
+  /groups/{groupId}/name:
     put:
       tags: ["Groups"]
       summary: Imposta nome gruppo

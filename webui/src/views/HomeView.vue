@@ -12,6 +12,8 @@ export default {
 			loading: false,
 			chats : null,
 			messages : null,
+			sentMessages : [],
+			numSentMessages: 0,
 			selectedChatId: null,
 			selectedChatTitle: '',
 			newMessage: '',
@@ -108,6 +110,8 @@ export default {
 					this.messages = [];
 				} else {
 					this.messages = response.data.messages; 
+					this.messages.forEach(m => this.checkMessageStatus(m));
+					this.updateMessageStatus();
 				}
 				this.selectedChatId = chatId;
 				this.selectedChatTitle = response.data.title || '';
@@ -178,28 +182,86 @@ export default {
 				this.loading = false;
 			}
 		},
-		async createGroup(usersList) {
+		async updateMessage(messageId, newText) {
 			this.loading = true;
 			this.errormsg = null;
 			try {
-				const body = { groupName, groupDescription, groupPhoto, userId};
-				let response = await this.$axios.post(`/groups`, body);
+				let response = await this.$axios.put(`/messages/${messageId}`, { text: newText });
 			}
 			catch(e) {
-
+				this.errormsg = e.toString();
 			}
 			finally {
 				this.loading = false;
 			}
 		},
-		async deleteGroup() {
+		async createGroup() {
 			this.loading = true;
 			this.errormsg = null;
 			try {
-
+				const body = { 
+					groupName: this.newGroupData.name, 
+					groupDescription: this.newGroupData.description, 
+					photoUrl: this.newGroupData.photoUrl,
+					members: this.newGroupData.selectedMembers
+				};
+				let response = await this.$axios.post(`/groups`, body);
+				this.isCreatingGroup = false;
+				this.newGroupData = { name: '', description: '', photoUrl: '', selectedMembers: [] };
+				this.refresh();
 			}
 			catch(e) {
-
+				this.errormsg = e.toString();
+			}
+			finally {
+				this.loading = false;
+			}
+		},
+		async leaveGroup(chatId) {
+			this.loading = true;
+			this.errormsg = null;
+			try {
+				const myUserId = localStorage.getItem("token");
+				let response = await this.$axios.delete(`/groups/${chatId}/members/${myUserId}`);
+				if (this.selectedChatId === chatId) {
+					this.selectedChatId = null;
+					this.messages = null;
+				}
+				this.refresh();
+			}
+			catch(e) {
+				this.errormsg = e.toString();
+			}
+			finally {
+				this.loading = false;
+			}
+		},
+		async updateGroupPhoto(newPhoto) {
+			if (!this.selectedChatId) return;
+			this.loading = true;
+			this.errormsg = null;
+			try {
+				let response = await this.$axios.put(`/groups/${this.selectedChatId}/photo`, { photoUrl: newPhoto });
+				this.refresh();
+			}
+			catch(e) {
+				this.errormsg = e.toString();
+			}
+			finally {
+				this.loading = false;
+			}
+		},
+		async updateGroupName(newName) {
+			if (!this.selectedChatId) return;
+			this.loading = true;
+			this.errormsg = null;
+			try {
+				let response = await this.$axios.put(`/groups/${this.selectedChatId}/name`, { groupName: newName });
+				this.selectedChatTitle = newName;
+				this.refresh();
+			}
+			catch(e) {
+				this.errormsg = e.toString();
 			}
 			finally {
 				this.loading = false;
@@ -207,17 +269,61 @@ export default {
 		},
 		async searchUsersForGroup() {
 			this.loading = true;
-			this,errormsg = null;
+			this.errormsg = null;
 			try {
-				let response = await this.$axios.get("/users", )
+				let response = await this.$axios.get(`/users?name=${this.groupSearchQuery}`);
+				this.groupSearchResults = response.data || [];
 			}
 			catch(e) {
-				this.errmsg = e.toString()
+				this.errormsg = e.toString();
 			}
 			finally {
 				this.loading = false;
 			}
 		},
+		selectMembers(userId) {
+			const index = this.newGroupData.selectedMembers.indexOf(userId);
+			if (index === -1) {
+				this.newGroupData.selectedMembers.push(userId);
+			} else {
+				this.newGroupData.selectedMembers.splice(index, 1);
+			}
+		},
+		checkMessageStatus(message) {
+			const myUserId = localStorage.getItem("token");
+			if (message.state === "sent" && myUserId !== message.senderId) {
+				if (!this.sentMessages.includes(message.messageId)) {
+					this.sentMessages.push(message.messageId);
+				}
+			}
+		},
+		countSentMessages() {
+			this.erromsg = null;
+			try {
+				this.numSentMessages = this.sentMessages.length();
+			}
+			catch(e) {
+				this.erromsg = e.toString();
+			}
+		},
+		async updateMessageStatus() {
+			if (!this.sentMessages || this.sentMessages.length === 0) return;
+			
+			this.errormsg = null;
+			try {
+				const unreadIds = [...this.sentMessages];
+				this.sentMessages = [];
+				this.numSentMessages = 0;
+				
+				for (let mid of unreadIds) {
+					await this.$axios.put(`/messages/${mid}/status`, { status: "read" });
+				}
+				this.refresh();
+			}
+			catch(e) {
+				this.errormsg = e.toString();
+			}
+		}
 	},
 	mounted() {
 		this.refresh();
@@ -306,11 +412,11 @@ export default {
 					</div>
 					
 					<div class="users-list-scrollable" v-if="groupSearchResults.length > 0">
-						<div v-for="user in groupSearchResults" :key="user.userId" class="user-selection-item" @click="toggleMemberSelection(user.userId)">
+						<div v-for="user in groupSearchResults" :key="user.userId" class="user-selection-item" @click="selectMembers(user.userId)">
 							<input 
 								type="checkbox" 
 								:checked="newGroupData.selectedMembers.includes(user.userId)"
-								@change.stop="toggleMemberSelection(user.userId)"
+								@change.stop="selectMembers(user.userId)"
 							>
 							<div class="user-info">
 								<span class="user-name">{{ user.name }}</span>

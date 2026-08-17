@@ -1,6 +1,11 @@
 <script>
+import MessageStatus from './MessageStatus.vue';
+
 export default {
     name: "ChatWindow",
+    components: {
+        MessageStatus
+    },
     props: {
         messages: {
             type: Array,
@@ -63,9 +68,6 @@ export default {
                         <h3 class="chat-title">{{ displayTitle }}</h3>
                     </div>
                 </div>
-                <div class="chat-header-actions">
-                    <!-- Eventuali bottoni per chiamate, info, ecc. -->
-                </div>
             </div>
             
             <!-- Area Messaggi -->
@@ -77,16 +79,14 @@ export default {
                         :class="['message-wrapper', msg.senderId === myUserId ? 'message-out' : 'message-in']"
                     >
                         <div class="message-bubble">
-                            <!-- Nome mittente visibile solo nei gruppi o se non è l'utente corrente, ma per minimalismo lo nascondiamo se è il mio -->
-                            <div v-if="msg.senderId !== myUserId" class="message-sender">
-                                {{ msg.senderId.substring(0,6) }}
-                            </div>
                             <div class="message-text">
                                 {{ msg.text }}
                             </div>
                             <div class="message-meta">
                                 <span class="message-time">{{ msg.createdAt ? msg.createdAt.substring(11, 16) : '' }}</span>
                                 
+                                <MessageStatus v-if="msg.senderId === myUserId" :status="msg.state" />
+
                                 <div class="message-actions">
                                     <button @click="$emit('forward-message', msg.messageId)" class="msg-action-btn" title="Inoltra">
                                         <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#corner-up-right"/></svg>

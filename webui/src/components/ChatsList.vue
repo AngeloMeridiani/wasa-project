@@ -10,7 +10,8 @@ export default {
     data() {
         return {
             targetUserName: "",
-            myUserId: localStorage.getItem("token")
+            myUserId: localStorage.getItem("token"),
+            unreadCount: 0,
         }
     }
 }
@@ -55,6 +56,10 @@ export default {
                             <p v-if="chat.lastMessage" class="chat-last-msg">{{ chat.lastMessage.text }}</p>
                             <p v-else class="chat-last-msg italic">Nessun messaggio</p>
                         </div>
+                    </div>
+                    <!-- Mostra il badge solo se ci sono messaggi non letti -->
+                    <div v-if="unreadCount > 0" class="unread-badge">
+                        {{ unreadCount }}
                     </div>
                     <button class="delete-btn" @click.stop="$emit('delete-chat', chat.chatId)" title="Elimina chat">
                         <svg class="feather" style="width: 16px; height: 16px;"><use href="/feather-sprite-v4.29.0.svg#trash-2"/></svg>
@@ -101,6 +106,20 @@ export default {
     cursor: help;
     border: 1px solid var(--color-border);
 }
+
+.unread-badge{
+    font-size: 0.75rem;
+    background-color: var(--color-bg-app);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    color: var(--color-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    cursor: help;
+    border: 1px solid var(--color-border);
+}
+
 .create-chat-box {
     padding: 10px 20px 20px 20px;
     display: flex;
