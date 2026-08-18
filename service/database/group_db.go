@@ -99,15 +99,15 @@ func (db *appdbimpl) GetGroup(groupId string) (*Group, error) {
 	}
 	// Query Gruppo
 	var g Group
-	err = db.c.QueryRow(`SELECT group_id, group_name, group_description, photo_url, created_at 
-		FROM groups WHERE group_id = ?`, groupId).Scan(&g.GroupId, &g.GroupName, &g.GroupDescription, &g.PhotoUrl, &g.CreatedAt)
+	err = db.c.QueryRow(`SELECT group_id, chat_id, group_name, group_description, photo_url, created_at 
+		FROM groups WHERE group_id = ?`, groupId).Scan(&g.GroupId, &g.ChatId, &g.GroupName, &g.GroupDescription, &g.PhotoUrl, &g.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("errore lettura gruppo: %w", err)
 	}
 
 	// Query Membri
 	m := []string{}
-	result, err := db.c.Query("SELECT user_id FROM chat_members WHERE group_id = ?", groupId)
+	result, err := db.c.Query("SELECT user_id FROM chat_members WHERE chat_id = ?", g.ChatId)
 	if err != nil {
 		return nil, fmt.Errorf("errore lettura membri: %w", err)
 	}
@@ -199,7 +199,7 @@ func (db *appdbimpl) SetGroupPhoto(groupId string, userId string, photoUrl strin
 	return nil
 }
 
-func (db *appdbimpl) AddToGroup(groupId string, userId string) error {
+func (db *appdbimpl) AddToGroup(groupId string, requesterId string, userId string) error {
 	// Controllo l'esistenza del gruppo e dell'utente
 	var groupExists bool
 	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM groups WHERE group_id = ?)", groupId).Scan(&groupExists)
@@ -216,6 +216,21 @@ func (db *appdbimpl) AddToGroup(groupId string, userId string) error {
 	}
 	if !userExists {
 		return errors.New("utente non trovato")
+	}
+
+	var isAdmin bool
+	err = db.c.QueryRow(`
+		SELECT EXISTS(
+			SELECT 1 FROM chat_members cm
+			JOIN groups g ON cm.chat_id = g.chat_id
+			WHERE g.group_id = ? AND cm.user_id = ? AND cm.role = 'admin'
+		)
+	`, groupId, requesterId).Scan(&isAdmin)
+	if err != nil {
+		return fmt.Errorf("Errore durante la verifica dei permessi: %w", err)
+	}
+	if !isAdmin {
+		return errors.New("Utente non autorizzato ad aggiungere membri al gruppo")
 	}
 
 	var chatId string

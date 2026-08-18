@@ -1316,6 +1316,12 @@ components:
       type: object
       description: Rappresenta una conversazione completa (chat) con i suoi messaggi
       properties: 
+        groupId:
+          type: string
+          description: L'ID del gruppo, se la chat è associata a un gruppo
+          pattern: '^[a-zA-Z0-9]+$'
+          minLength: 20
+          maxLength: 20
         messages:  
           type: array
           description: Lista dei messaggi contenuti nella chat

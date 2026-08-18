@@ -155,8 +155,12 @@ func (rt *_router) addToGroup(w http.ResponseWriter, r *http.Request, ps httprou
 	}
 	defer r.Body.Close()
 
-	err = rt.db.AddToGroup(groupId, body.UserId)
+	err = rt.db.AddToGroup(groupId, ctx.UserId, body.UserId)
 	if err != nil {
+		if strings.Contains(err.Error(), "non autorizzato") {
+			http.Error(w, "Accesso Negato - Non hai i permessi per aggiungere membri al gruppo", http.StatusForbidden)
+			return
+		}
 		if strings.Contains(err.Error(), "già membro") {
 			http.Error(w, "L'utente è già un membro del gruppo", http.StatusConflict)
 			return

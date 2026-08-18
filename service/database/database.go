@@ -43,7 +43,7 @@ type AppDatabase interface {
 	GetGroup(groupId string) (*Group, error)
 	SetGroupName(groupId string, userId string, name string) error
 	SetGroupPhoto(groupId string, userId string, photoUrl string) error
-	AddToGroup(groupId string, userId string) error
+	AddToGroup(groupId string, requesterId string, userId string) error
 	LeaveGroup(groupId string, userId string) error
 
 	Ping() error
@@ -157,7 +157,7 @@ func (db *appdbimpl) Ping() error {
 	return db.c.Ping()
 }
 
-// generateID crea un identificativo univoco casuale (20 caratteri hex)
+// ID univoco di 20 caratteri
 func generateID() string {
 	id := make([]byte, 10)
 	_, _ = rand.Read(id)

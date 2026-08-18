@@ -22,6 +22,10 @@ export default {
         chatTitle: {
             type: String,
             default: ""
+        },
+        groupId: {
+            type: String,
+            default: null
         }
     },
     data() {
@@ -47,6 +51,30 @@ export default {
             if (this.localMessage.trim()) {
                 this.$emit('send-message');
             }
+        },
+        formatMessageDate(dateStr) {
+            if (!dateStr) return '';
+            // Formato atteso: 2026-08-18T13:58:27Z
+            // Output desiderato: 18/08 13:58
+            try {
+                const dateObj = new Date(dateStr);
+                const day = String(dateObj.getDate()).padStart(2, '0');
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const hours = String(dateObj.getHours()).padStart(2, '0');
+                const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                
+                // Controlliamo se è oggi per eventualmente omettere la data
+                const today = new Date();
+                if (dateObj.getDate() === today.getDate() && 
+                    dateObj.getMonth() === today.getMonth() && 
+                    dateObj.getFullYear() === today.getFullYear()) {
+                    return `${hours}:${minutes}`;
+                }
+                
+                return `${day}/${month} ${hours}:${minutes}`;
+            } catch (e) {
+                return dateStr.substring(11, 16); // fallback
+            }
         }
     }
 }
@@ -67,6 +95,15 @@ export default {
                     <div class="chat-title-group">
                         <h3 class="chat-title">{{ displayTitle }}</h3>
                     </div>
+                    <!-- Bottoni azioni gruppo, visibili solo se la chat è un gruppo (ha groupId) -->
+                    <div v-if="groupId" class="group-actions ml-auto d-flex align-items-center">
+                        <button class="action-btn" @click="$emit('add-user-to-group')" title="Aggiungi Utenti">
+                            <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#user-plus"/></svg>
+                        </button>
+                        <button class="action-btn" @click="$emit('change-group-name')" title="Cambia Nome Gruppo">
+                            <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#edit-2"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -83,7 +120,7 @@ export default {
                                 {{ msg.text }}
                             </div>
                             <div class="message-meta">
-                                <span class="message-time">{{ msg.createdAt ? msg.createdAt.substring(11, 16) : '' }}</span>
+                                <span class="message-time">{{ formatMessageDate(msg.createdAt) }}</span>
                                 
                                 <MessageStatus v-if="msg.senderId === myUserId" :status="msg.state" />
 
@@ -196,6 +233,33 @@ export default {
     margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
+}
+
+/* Pulsanti Azione Gruppo */
+.group-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
+}
+.action-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+.action-btn:hover {
+    background-color: var(--color-bg-hover);
+    color: var(--color-primary);
+}
+.action-btn svg {
+    width: 20px;
+    height: 20px;
 }
 .chat-subtitle {
     color: var(--color-text-muted);

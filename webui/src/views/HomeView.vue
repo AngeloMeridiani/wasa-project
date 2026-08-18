@@ -16,11 +16,15 @@ export default {
 			numSentMessages: 0,
 			selectedChatId: null,
 			selectedChatTitle: '',
+			selectedGroupId: null,
 			newMessage: '',
 			forwardingMessageId: null,
 			availableEmojis: ['👍', '❤️', '💔', '😴', '😂', '😮', '😢', '🔥', '🤐'],
 			pollIntervalId: null,
 			isCreatingGroup: false,
+			isAddingUserToGroup: false,
+			isChangingGroupName: false,
+			newGroupNameInput: '',
 			groupSearchQuery: '',
 			groupSearchResults: [],
 			newGroupData: {
@@ -33,8 +37,10 @@ export default {
 	},
 	methods: {
 		async refresh(silent = false) {
-			if (!silent) this.loading = true;
-			this.errormsg = null;
+			if (!silent) {
+				this.loading = true;
+				this.errormsg = null;
+			}
 			try {
 				let response = await this.$axios.get("/chats");
 				this.chats = response.data.chats || [];
@@ -102,8 +108,10 @@ export default {
 			}
 		},
 		async selectChat(chatId, silent = false) {
-			if (!silent) this.loading = true;
-			this.errormsg = null;
+			if (!silent) {
+				this.loading = true;
+				this.errormsg = null;
+			}
 			try {
 				let response = await this.$axios.get(`/chats/${chatId}`);
 				if (!response.data.messages) {
@@ -115,6 +123,7 @@ export default {
 				}
 				this.selectedChatId = chatId;
 				this.selectedChatTitle = response.data.title || '';
+				this.selectedGroupId = response.data.groupId || null;
 			} catch (e) {
 				if (!silent) this.errormsg = e.toString();
 			}
@@ -196,6 +205,10 @@ export default {
 			}
 		},
 		async createGroup() {
+			if (!this.newGroupData.name || !this.newGroupData.name.trim()) {
+				this.errormsg = "Il nome del gruppo è obbligatorio";
+				return;
+			}
 			this.loading = true;
 			this.errormsg = null;
 			try {
@@ -237,11 +250,11 @@ export default {
 			}
 		},
 		async updateGroupPhoto(newPhoto) {
-			if (!this.selectedChatId) return;
+			if (!this.selectedGroupId) return;
 			this.loading = true;
 			this.errormsg = null;
 			try {
-				let response = await this.$axios.put(`/groups/${this.selectedChatId}/photo`, { photoUrl: newPhoto });
+				let response = await this.$axios.put(`/groups/${this.selectedGroupId}/photo`, { photoUrl: newPhoto });
 				this.refresh();
 			}
 			catch(e) {
@@ -251,17 +264,60 @@ export default {
 				this.loading = false;
 			}
 		},
+		async confirmChangeGroupName() {
+			if (this.newGroupNameInput && this.newGroupNameInput.trim() !== "") {
+				this.isChangingGroupName = false;
+				await this.updateGroupName(this.newGroupNameInput.trim());
+			} else {
+				this.errormsg = "Il nome del gruppo non può essere vuoto.";
+			}
+		},
 		async updateGroupName(newName) {
-			if (!this.selectedChatId) return;
+			// Apre il modale se chiamato dal click del bottone (newName non è una stringa)
+			if (typeof newName !== 'string') {
+				this.newGroupNameInput = this.selectedChatTitle;
+				this.isChangingGroupName = true;
+				return;
+			}
+			if (!this.selectedGroupId) return;
 			this.loading = true;
 			this.errormsg = null;
 			try {
-				let response = await this.$axios.put(`/groups/${this.selectedChatId}/name`, { groupName: newName });
+				let response = await this.$axios.put(`/groups/${this.selectedGroupId}/name`, { name: newName });
 				this.selectedChatTitle = newName;
 				this.refresh();
 			}
 			catch(e) {
-				this.errormsg = e.toString();
+				if (e.response && e.response.status === 403) {
+					this.errormsg = "Solo l'admin può cambiare nome al gruppo!";
+				} else {
+					this.errormsg = e.toString();
+				}
+			}
+			finally {
+				this.loading = false;
+			}
+		},
+		async addUserToGroup(userId) {
+			if (!this.selectedGroupId) return;
+			this.loading = true;
+			this.errormsg = null;
+			try {
+				await this.$axios.post(`/groups/${this.selectedGroupId}/members`, { userId: userId });
+				this.isAddingUserToGroup = false;
+				this.refresh();
+				alert("Utente aggiunto al gruppo con successo");
+			}
+			catch(e) {
+				if (e.response && e.response.status === 409) {
+					this.errormsg = "Questo utente fa già parte del gruppo!";
+				} else if (e.response && e.response.status === 403) {
+					this.errormsg = "Solo l'admin può aggiungere membri al gruppo";
+				} else if (e.response && e.response.data) {
+					this.errormsg = e.response.data;
+				} else {
+					this.errormsg = e.toString();
+				}
 			}
 			finally {
 				this.loading = false;
@@ -272,7 +328,12 @@ export default {
 			this.errormsg = null;
 			try {
 				let response = await this.$axios.get(`/users?name=${this.groupSearchQuery}`);
-				this.groupSearchResults = response.data || [];
+				const myUserId = localStorage.getItem("token");
+				if (response.data) {
+					this.groupSearchResults = response.data.filter(u => u.userId !== myUserId);
+				} else {
+					this.groupSearchResults = [];
+				}
 			}
 			catch(e) {
 				this.errormsg = e.toString();
@@ -355,7 +416,19 @@ export default {
 				/>
 			</div>
 			<div class="main-container" v-if="selectedChatId">
-				<ChatWindow :messages="messages" :selectedChatId="selectedChatId" :chatTitle="selectedChatTitle" v-model:draftMessage="newMessage" @send-message="sendMessage" @delete-message="deleteMessage" @forward-message="forwardMessage" @close-chat="selectedChatId = null" />
+				<ChatWindow 
+					:messages="messages" 
+					:selectedChatId="selectedChatId" 
+					:chatTitle="selectedChatTitle" 
+					:groupId="selectedGroupId"
+					v-model:draftMessage="newMessage" 
+					@send-message="sendMessage" 
+					@delete-message="deleteMessage" 
+					@forward-message="forwardMessage" 
+					@change-group-name="updateGroupName"
+					@add-user-to-group="isAddingUserToGroup = true"
+					@close-chat="selectedChatId = null" 
+				/>
 			</div>
 		</div>
 	</LoadingSpinner>
@@ -416,7 +489,7 @@ export default {
 							<input 
 								type="checkbox" 
 								:checked="newGroupData.selectedMembers.includes(user.userId)"
-								@change.stop="selectMembers(user.userId)"
+								@click.stop="selectMembers(user.userId)"
 							>
 							<div class="user-info">
 								<span class="user-name">{{ user.name }}</span>
@@ -434,6 +507,63 @@ export default {
 					<button class="btn-primary-custom full-width" @click="createGroup" :disabled="loading">
 						<span v-if="loading">Creazione...</span>
 						<span v-else>Crea Gruppo</span>
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Aggiungi Utente a Gruppo -->
+		<div v-if="isAddingUserToGroup" class="modal-overlay" @click.self="isAddingUserToGroup = false">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>Aggiungi Utente</h3>
+					<button class="close-btn" @click="isAddingUserToGroup = false">
+						<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#x"/></svg>
+					</button>
+				</div>
+				<div class="modal-body group-creation-body">
+					<div class="search-users-box">
+						<input
+							type="text"
+							class="input-custom full-width search-input"
+							v-model="groupSearchQuery"
+							placeholder="Cerca per nome..."
+							@keyup="searchUsersForGroup"
+						/>
+					</div>
+					
+					<div class="users-list-scrollable" v-if="groupSearchResults.length > 0">
+						<div v-for="user in groupSearchResults" :key="user.userId" class="user-selection-item" @click="addUserToGroup(user.userId)">
+							<div class="user-info">
+								<span class="user-name">{{ user.name }}</span>
+								<span class="user-id">#{{ user.userId.substring(0,6) }}</span>
+							</div>
+							<button class="btn-primary-custom" style="padding: 4px 8px; font-size: 0.8rem;">Aggiungi</button>
+						</div>
+					</div>
+					<p v-else class="no-chats">Nessun utente trovato.</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Modal Cambia Nome Gruppo -->
+		<div v-if="isChangingGroupName" class="modal-overlay" @click.self="isChangingGroupName = false">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>Cambia Nome Gruppo</h3>
+					<button class="close-btn" @click="isChangingGroupName = false">
+						<svg class="feather"><use href="/feather-sprite-v4.29.0.svg#x"/></svg>
+					</button>
+				</div>
+				<div class="modal-body group-creation-body">
+					<div class="form-group">
+						<input type="text" class="input-custom full-width" v-model="newGroupNameInput" placeholder="Nuovo nome del gruppo" @keyup.enter="confirmChangeGroupName">
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn-primary-custom full-width" @click="confirmChangeGroupName" :disabled="loading">
+						<span v-if="loading">Salvataggio...</span>
+						<span v-else>Salva Nome</span>
 					</button>
 				</div>
 			</div>

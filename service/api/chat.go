@@ -74,12 +74,14 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 
 	response := struct {
 		ChatId     string             `json:"chatId"`
+		GroupId    *string            `json:"groupId,omitempty"`
 		Title      string             `json:"title,omitempty"`
 		CreatedAt  time.Time          `json:"createdAt"`
 		ModifiedAt time.Time          `json:"modifiedAt"`
 		Messages   []database.Message `json:"messages"`
 	}{
 		ChatId:     chat.ChatId,
+		GroupId:    chat.GroupId,
 		Title:      chat.Title,
 		CreatedAt:  chat.CreatedAt,
 		ModifiedAt: chat.ModifiedAt,

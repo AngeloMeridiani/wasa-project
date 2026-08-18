@@ -7,12 +7,10 @@ import (
 )
 
 func (db *appdbimpl) CreateChat(userId1 string, userId2 string) (*Chat, error) {
-
 	chatId := generateID()
 	createdAt := time.Now()
 	modifiedAt := time.Now()
 
-	// Check if a DM chat already exists
 	var existingChatId string
 	var extCreatedAt, extModifiedAt time.Time
 	var checkErr error
@@ -112,7 +110,8 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 				WHEN c.type = 'group' THEN g.group_name
 				WHEN u.name IS NOT NULL THEN u.name
 				ELSE 'Messaggi Salvati'
-			END as title
+			END as title,
+			g.group_id
 		FROM chats c
 		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
 		LEFT JOIN groups g ON c.chat_id = g.chat_id AND c.type = 'group'
@@ -122,13 +121,16 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 	`
 
 	var chat Chat
+	var groupId sql.NullString
 	err := db.c.QueryRow(chatQuery, userId, userId, chatId).Scan(
-		&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &chat.Title,
+		&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &chat.Title, &groupId,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("chat non trovata o non autorizzato: %w", err)
 	}
-
+	if groupId.Valid {
+		chat.GroupId = &groupId.String
+	}
 	msgQuery := `
 		SELECT * FROM (
 			SELECT message_id, sender_id, text, state, content_type, COALESCE(photo_url, ''), created_at, updated_at
@@ -179,6 +181,7 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 				WHEN u.name IS NOT NULL THEN u.name
 				ELSE 'Messaggi Salvati'
 			END as title,
+			g.group_id,
 			m.message_id,
 			m.sender_id,
 			m.text,
@@ -218,17 +221,23 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 	for rows.Next() {
 		var chat Chat
 		var title sql.NullString
+		var groupId sql.NullString
 
 		var msgId, senderId, text, state, contentType, photoUrl sql.NullString
 		var msgCreatedAt, msgUpdatedAt sql.NullTime
 
 		err := rows.Scan(
-			&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &title,
+			&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &title, &groupId,
 			&msgId, &senderId, &text, &state, &contentType, &photoUrl, &msgCreatedAt, &msgUpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("errore nello scan della chat: %w", err)
 		}
+		
+		if groupId.Valid {
+			chat.GroupId = &groupId.String
+		}
+		
 		if title.Valid {
 			chat.Title = title.String
 		}
