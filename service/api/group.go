@@ -2,7 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
@@ -101,28 +104,55 @@ func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httpr
 func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	groupId := ps.ByName("groupId")
 
-	var body struct {
-		PhotoUrl string `json:"photoUrl"`
-	}
-
-	err := json.NewDecoder(r.Body).Decode(&body)
-	if err != nil {
-		http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
+	// Controllo il Content-Type
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "image/png" && contentType != "image/jpeg" {
+		http.Error(w, "Formato non supportato. Usa image/png o image/jpeg", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
 
-	err = rt.db.SetGroupPhoto(groupId, ctx.UserId, body.PhotoUrl)
+	// Check limite dimensione massima immagine
+	r.Body = http.MaxBytesReader(w, r.Body, 5*1024*1024)
+
+	// Leggo i byte dell'immagine
+	fileBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Errore nella lettura del file o file troppo grande", http.StatusBadRequest)
+		return
+	}
+
+	// Determina l'estensione e il nome file
+	ext := ".jpg"
+	if contentType == "image/png" {
+		ext = ".png"
+	}
+	fileName := fmt.Sprintf("img_group_%s%s", groupId, ext)
+	filePath := fmt.Sprintf("./images/pfp/%s", fileName)
+	photoUrl := fmt.Sprintf("/images/pfp/%s", fileName)
+
+	// Scrivi i byte su disco
+	err = os.WriteFile(filePath, fileBytes, 0644)
+	if err != nil {
+		// 500
+		ctx.Logger.WithError(err).Error("Errore durante il salvataggio dell'immagine")
+		http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
+		return
+	}
+
+	err = rt.db.SetGroupPhoto(groupId, ctx.UserId, photoUrl)
 	if err != nil {
 		if strings.Contains(err.Error(), "non trovato") {
+			// 403
 			http.Error(w, "Gruppo non trovato", http.StatusNotFound)
 			return
 		}
 		if strings.Contains(err.Error(), "non autorizzato") {
+			// 403
 			http.Error(w, "Accesso Negato - Non hai i permessi per modificare questo gruppo", http.StatusForbidden)
 			return
 		}
 		if strings.Contains(err.Error(), "caratteri") {
+			// 400
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

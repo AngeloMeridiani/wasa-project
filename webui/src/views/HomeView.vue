@@ -249,12 +249,16 @@ export default {
 				this.loading = false;
 			}
 		},
-		async updateGroupPhoto(newPhoto) {
-			if (!this.selectedGroupId) return;
+		async updateGroupPhoto(file) {
+			if (!this.selectedGroupId || !file) return;
 			this.loading = true;
 			this.errormsg = null;
 			try {
-				let response = await this.$axios.put(`/groups/${this.selectedGroupId}/photo`, { photoUrl: newPhoto });
+				let response = await this.$axios.put(`/groups/${this.selectedGroupId}/photo`, file, {
+					headers: {
+						'Content-Type': file.type
+					}
+				});
 				this.refresh();
 			}
 			catch(e) {
@@ -426,6 +430,7 @@ export default {
 					@delete-message="deleteMessage" 
 					@forward-message="forwardMessage" 
 					@change-group-name="updateGroupName"
+					@change-group-photo="updateGroupPhoto"
 					@add-user-to-group="isAddingUserToGroup = true"
 					@close-chat="selectedChatId = null" 
 				/>

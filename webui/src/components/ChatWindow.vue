@@ -52,6 +52,19 @@ export default {
                 this.$emit('send-message');
             }
         },
+        triggerGroupPhotoUpload() {
+            this.$refs.groupPhotoInput.click();
+        },
+        onGroupPhotoSelected(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.$emit('change-group-photo', file);
+            }
+            // Reset input so the same file can be selected again
+            if (this.$refs.groupPhotoInput) {
+                this.$refs.groupPhotoInput.value = "";
+            }
+        },
         formatMessageDate(dateStr) {
             if (!dateStr) return '';
             // Formato atteso: 2026-08-18T13:58:27Z
@@ -103,6 +116,10 @@ export default {
                         <button class="action-btn" @click="$emit('change-group-name')" title="Cambia Nome Gruppo">
                             <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#edit-2"/></svg>
                         </button>
+                        <button class="action-btn" @click="triggerGroupPhotoUpload" title="Cambia Foto Gruppo">
+                            <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#camera"/></svg>
+                        </button>
+                        <input type="file" ref="groupPhotoInput" style="display: none" accept="image/png, image/jpeg" @change="onGroupPhotoSelected">
                     </div>
                 </div>
             </div>

@@ -13,7 +13,8 @@ export default {
             errormsg : "",
             loading: false,
             newPhotoUrl: "",
-            photoUrl: ""
+            photoUrl: "",
+            selectedFile: null
         }
     },
     methods: {
@@ -31,7 +32,6 @@ export default {
                 let response = await this.$axios.get(`/users/${this.userId}`);
                 this.photoUrl = response.data.userPhoto;
                 this.username = response.data.name;
-                this.newUsername = response.data.name;
             }
             catch(e) {
                 this.errormsg = e.toString();
@@ -60,23 +60,38 @@ export default {
                 await this.loadProfile();
             }
             catch(e) {
-                if (e.response && e.response.status == 400) {
-                    this.errormsg = "Nome non valido (deve essere compreso tra i 3 e 25 caratteri)";
+                if (e.response && e.response.status == 409) {
+                    this.errormsg = "Questo nome utente è già in uso!";
+                } else if (e.response && e.response.status == 400) {
+                    this.errormsg = e.response.data || "Nome non valido (deve essere compreso tra i 3 e 25 caratteri)";
                 } else {
                     this.errormsg = e.toString();
                 }
-                console.error("Errore di login:", e);
+                console.error("Errore modifica nome:", e);
             }
             finally {
                 this.loading = false;
             }
         },
+        handlePhotoUpload(event) {
+            this.selectedFile = event.target.files[0];
+        },
         async setPhoto() {
+            if (!this.selectedFile) {
+                this.errormsg = "Seleziona prima un'immagine!";
+                return;
+            }
             this.loading = true;
             try {
-                let response = await this.$axios.put(`/users/${this.userId}/photo`, { photoUrl : this.newPhotoUrl });
+                let response = await this.$axios.put(`/users/${this.userId}/photo`, this.selectedFile, {
+                    headers: {
+                        'Content-Type': this.selectedFile.type
+                    }
+                });
                 this.photoUrl = response.data.photoUrl;
                 await this.loadProfile();
+                this.selectedFile = null;
+                if (this.$refs.fileInput) this.$refs.fileInput.value = "";
             }
             catch(e) {
                 this.errormsg = e.toString();
@@ -99,8 +114,8 @@ export default {
         <ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
 
         <div class="user-informations">
-            <h3> Nome utente: {{ username }} </h3>
-            <h3> ID Utente: {{ userId }} </h3>
+            <h3> Nome utente: <strong>{{ username }}</strong> </h3>
+            <h3> ID Utente: <strong>{{ userId }}</strong> </h3>
             <h3> Immagine profilo utente: </h3>
             <img v-if="photoUrl" :src="photoUrl">
         </div>
@@ -127,13 +142,12 @@ export default {
 
         <div class="change-photo">
             <input 
-                type="text"
+                type="file"
+                ref="fileInput"
                 class="input-custom login-input"
-                v-model="newPhotoUrl"
-                placeholder="La tua nuova foto..."
-                @keyup.enter="setPhoto"
+                accept="image/png, image/jpeg"
+                @change="handlePhotoUpload"
                 :disabled="loading"
-                autocomplete="off"
             >
             <button 
                 class="btn-primary-custom login-btn" 

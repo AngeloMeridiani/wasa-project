@@ -8,6 +8,7 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/data
+      - ./images:/app/images
     environment:
       - CFG_DB_FILENAME=/data/wasa.db
       - CFG_DEBUG=true

@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
@@ -35,11 +37,11 @@ func (rt *_router) SetMyUserName(w http.ResponseWriter, r *http.Request, ps http
 	if err != nil {
 		if err.Error() == "utente non trovato" {
 			// 404
-			http.Error(w, "Errore: 404", http.StatusNotFound)
+			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
 		// 400
-		http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -79,7 +81,7 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 		return
 	}
 
-	// Check limite dimensione massima immagine
+	// Check limite dimensione massima dell'immagine
 	r.Body = http.MaxBytesReader(w, r.Body, 5*1024*1024)
 
 	// Leggo i byte dell'immagine
@@ -92,10 +94,35 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 
 	ctx.Logger.Infof("Ricevuta immagine per User %s! Dimensione: %d bytes. Tipo: %s\n", userId, len(fileBytes), contentType)
 
+	// Determina l'estensione e il nome file
+	ext := ".jpg"
+	if contentType == "image/png" {
+		ext = ".png"
+	}
+	fileName := fmt.Sprintf("img_user_%s%s", userId, ext)
+	filePath := fmt.Sprintf("./images/pfp/%s", fileName)
+	photoUrl := fmt.Sprintf("/images/pfp/%s", fileName)
+
+	// Scrivi i byte su disco
+	err = os.WriteFile(filePath, fileBytes, 0644)
+	if err != nil {
+		// 500
+		ctx.Logger.WithError(err).Error("Errore durante il salvataggio dell'immagine")
+		http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
+		return
+	}
+
+	// Aggiorna il DB
+	err = rt.db.SetMyPhoto(userId, photoUrl)
+	if err != nil {
+		ctx.Logger.WithError(err).Error("Errore aggiornamento photoUrl nel DB")
+		http.Error(w, "Errore interno durante l'aggiornamento del DB", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	// 200
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(map[string]string{"message": "Foto profilo aggiornata correttamente"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"photoUrl": photoUrl, "message": "Foto profilo aggiornata correttamente"})
 }
 
 func (rt *_router) getUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
