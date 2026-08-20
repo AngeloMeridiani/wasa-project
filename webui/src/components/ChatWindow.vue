@@ -30,7 +30,8 @@ export default {
     },
     data() {
         return {
-            myUserId: localStorage.getItem("token")
+            myUserId: localStorage.getItem("token"),
+            apiBaseUrl: __API_URL__
         }
     },
     computed: {
@@ -60,9 +61,32 @@ export default {
             if (file) {
                 this.$emit('change-group-photo', file);
             }
-            // Reset input so the same file can be selected again
             if (this.$refs.groupPhotoInput) {
                 this.$refs.groupPhotoInput.value = "";
+            }
+        },
+        triggerImageMessageUpload() {
+            this.$refs.imageMessageInput.click();
+        },
+        onImageMessageSelected(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.$emit('send-image-message', file);
+            }
+            if (this.$refs.imageMessageInput) {
+                this.$refs.imageMessageInput.value = "";
+            }
+        },
+        triggerImageMessageUpload() {
+            this.$refs.imageMessageInput.click();
+        },
+        onImageMessageSelected(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.$emit('send-image-message', file);
+            }
+            if (this.$refs.imageMessageInput) {
+                this.$refs.imageMessageInput.value = "";
             }
         },
         formatMessageDate(dateStr) {
@@ -133,7 +157,10 @@ export default {
                         :class="['message-wrapper', msg.senderId === myUserId ? 'message-out' : 'message-in']"
                     >
                         <div class="message-bubble">
-                            <div class="message-text">
+                            <div v-if="msg.contentType === 'image'" class="message-image-container">
+                                <img :src="apiBaseUrl + msg.photoUrl" alt="Immagine inviata" class="message-img" />
+                            </div>
+                            <div v-else class="message-text">
                                 {{ msg.text }}
                             </div>
                             <div class="message-meta">
@@ -161,9 +188,10 @@ export default {
             <!-- Area Input -->
             <div class="input-area">
                 <div class="input-container">
-                    <button class="attach-btn" title="Allega">
-                        <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#paperclip"/></svg>
+                    <button class="attach-btn" title="Allega Immagine" @click="triggerImageMessageUpload">
+                        <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#image"/></svg>
                     </button>
+                    <input type="file" ref="imageMessageInput" style="display: none" accept="image/png, image/jpeg" @change="onImageMessageSelected">
                     <input 
                         type="text" 
                         class="chat-input" 
@@ -461,5 +489,18 @@ export default {
     width: 18px;
     height: 18px;
     margin-left: -2px;
+}
+
+.message-image-container {
+    padding: 2px;
+    border-radius: 8px;
+    background: transparent;
+}
+
+.message-img {
+    max-width: 100%;
+    max-height: 250px;
+    border-radius: 8px;
+    object-fit: cover;
 }
 </style>

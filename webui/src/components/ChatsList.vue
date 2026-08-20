@@ -10,8 +10,7 @@ export default {
     data() {
         return {
             targetUserName: "",
-            myUserId: localStorage.getItem("token"),
-            unreadCount: 0,
+            myUserId: localStorage.getItem("token")
         }
     }
 }
@@ -53,13 +52,14 @@ export default {
                         </div>
                         <div class="chat-info">
                             <h4 class="chat-name">{{ chat.title || chat.chatId }}</h4>
-                            <p v-if="chat.lastMessage" class="chat-last-msg">{{ chat.lastMessage.text }}</p>
+                            <p v-if="chat.lastMessage && chat.lastMessage.contentType === 'image'" class="chat-last-msg italic"> Immagine </p>
+                            <p v-else-if="chat.lastMessage" class="chat-last-msg">{{ chat.lastMessage.text }}</p>
                             <p v-else class="chat-last-msg italic">Nessun messaggio</p>
                         </div>
                     </div>
                     <!-- Mostra il badge solo se ci sono messaggi non letti -->
-                    <div v-if="unreadCount > 0" class="unread-badge">
-                        {{ unreadCount }}
+                    <div v-if="chat.unreadCount > 0" class="unread-badge">
+                        {{ chat.unreadCount }}
                     </div>
                     <button class="delete-btn" @click.stop="$emit('delete-chat', chat.chatId)" title="Elimina chat">
                         <svg class="feather" style="width: 16px; height: 16px;"><use href="/feather-sprite-v4.29.0.svg#trash-2"/></svg>

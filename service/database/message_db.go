@@ -59,6 +59,59 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*
 	return &message, nil
 }
 
+func (db *appdbimpl) SendImageMessage(senderId string, chatId string, photoUrl string) (*Message, error) {
+	now := time.Now()
+
+	message := Message{
+		MessageId:   generateID(),
+		ChatId:      chatId,
+		SenderId:    senderId,
+		Text:        "", // empty text for image message
+		State:       StateSent,
+		ContentType: TypeImage,
+		PhotoUrl:    photoUrl,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	tx, err := db.c.Begin()
+	if err != nil {
+		return nil, fmt.Errorf("Errore avvio transazione: %w", err)
+	}
+	defer tx.Rollback()
+
+	result, err := tx.Exec(`INSERT INTO messages 
+		(message_id, chat_id, sender_id, text, state, content_type ,photo_url, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		message.MessageId, message.ChatId, message.SenderId, message.Text, message.State, message.ContentType, message.PhotoUrl, now, now)
+	if err != nil {
+		return nil, fmt.Errorf("Errore durante la creazione del messaggio: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("Errore nel recupero delle righe modificate: %w", err)
+	}
+	if rows == 0 {
+		return nil, errors.New("Riga del messaggio non creata")
+	}
+
+	_, err = tx.Exec("UPDATE chats SET modified_at = ? WHERE chat_id = ?", now, message.ChatId)
+	if err != nil {
+		return nil, fmt.Errorf("Errore durante la modifica del timestamp della chat: %w", err)
+	}
+
+	// Se la chat è stata cancellata dall'utente, quell'utente rivedrà di nuovo la chat
+	_, _ = tx.Exec("DELETE FROM deleted_chats WHERE chat_id = ?", message.ChatId)
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("Errore commit transazione: %w", err)
+	}
+
+	return &message, nil
+}
+
 func (db *appdbimpl) UpdateMessage(messageId string, text string, senderId string) (*Message, error) {
 	if len(text) < 1 || len(text) > 1000 {
 		return nil, errors.New("Il testo deve avere lunghezza tra 1 e 1000 caratteri")

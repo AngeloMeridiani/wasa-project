@@ -29,6 +29,7 @@ type AppDatabase interface {
 
 	// Messages
 	SendMessage(senderId string, chatId string, text string) (*Message, error)
+	SendImageMessage(senderId string, chatId string, photoUrl string) (*Message, error)
 	UpdateMessage(messageId string, text string, senderId string) (*Message, error)
 	DeleteMessage(messageId string, userId string) error
 	UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error)

@@ -113,7 +113,7 @@ export default {
 				this.errormsg = null;
 			}
 			try {
-				let response = await this.$axios.get(`/chats/${chatId}`);
+				let response = await this.$axios.get(`/chats/${chatId}?limit=100`);
 				if (!response.data.messages) {
 					this.messages = [];
 				} else {
@@ -149,6 +149,28 @@ export default {
 				this.loading = false;
 			}
         },
+		async sendImageMessage(file) {
+            if (!this.selectedChatId || !file) return;
+            try {
+				let formData = new FormData();
+				formData.append('chatId', this.selectedChatId);
+				formData.append('image', file);
+
+                let response = await this.$axios.post(`/messages`, formData, {
+					headers: {
+						'Content-Type': 'multipart/form-data'
+					}
+				});
+                    
+                if (!this.messages) this.messages = [];
+                this.messages.push(response.data);
+            } catch (e) {
+                this.errmsg = e.toString();
+            }
+			finally {
+				this.loading = false;
+			}
+		},
 		forwardMessage(messageId) {
 			this.forwardingMessageId = messageId;
 		},
@@ -432,6 +454,7 @@ export default {
 					@change-group-name="updateGroupName"
 					@change-group-photo="updateGroupPhoto"
 					@add-user-to-group="isAddingUserToGroup = true"
+					@send-image-message="sendImageMessage"
 					@close-chat="selectedChatId = null" 
 				/>
 			</div>

@@ -46,6 +46,7 @@ type Chat struct {
 	Title       string    `json:"title,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`
 	ModifiedAt  time.Time `json:"modifiedAt"`
+	UnreadCount int       `json:"unreadCount"`
 	LastMessage *Message  `json:"lastMessage,omitempty"`
 }
 

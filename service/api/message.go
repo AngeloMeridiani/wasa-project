@@ -2,7 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -12,28 +15,82 @@ import (
 )
 
 func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
-	var body struct {
-		ChatId string `json:"chatId"`
-		Text   string `json:"text"`
+	contentType := r.Header.Get("Content-Type")
+
+	var sentMessage *database.Message
+	var err error
+
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		// Messaggio Immagine
+		err = r.ParseMultipartForm(5 << 20) // 5 MB max
+		if err != nil {
+			http.Error(w, "Errore caricamento file", http.StatusBadRequest)
+			return
+		}
+
+		chatId := r.FormValue("chatId")
+		if chatId == "" {
+			http.Error(w, "chatId mancante", http.StatusBadRequest)
+			return
+		}
+
+		file, header, err := r.FormFile("image")
+		if err != nil {
+			http.Error(w, "Immagine mancante", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		fileBytes, err := io.ReadAll(file)
+		if err != nil {
+			http.Error(w, "Errore lettura immagine", http.StatusBadRequest)
+			return
+		}
+
+		// Determina l'estensione e il nome file
+		ext := ".jpg"
+		if strings.Contains(header.Header.Get("Content-Type"), "png") {
+			ext = ".png"
+		}
+		
+		// Usiamo il timestamp per rendere il nome file univoco, o usiamo un ID
+		fileName := fmt.Sprintf("msg_%d%s", time.Now().UnixNano(), ext)
+		filePath := fmt.Sprintf("./images/media/%s", fileName)
+		photoUrl := fmt.Sprintf("/images/media/%s", fileName)
+
+		err = os.WriteFile(filePath, fileBytes, 0644)
+		if err != nil {
+			ctx.Logger.WithError(err).Error("Errore durante il salvataggio dell'immagine del messaggio")
+			http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
+			return
+		}
+
+		sentMessage, err = rt.db.SendImageMessage(ctx.UserId, chatId, photoUrl)
+
+	} else {
+		// Messaggio di Testo (JSON)
+		var body struct {
+			ChatId string `json:"chatId"`
+			Text   string `json:"text"`
+		}
+
+		err = json.NewDecoder(r.Body).Decode(&body)
+		if err != nil {
+			http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		sentMessage, err = rt.db.SendMessage(ctx.UserId, body.ChatId, body.Text)
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
-		// 400
-		http.Error(w, "Formato JSON non valido", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	sentMessage, err := rt.db.SendMessage(ctx.UserId, body.ChatId, body.Text)
-	if err != nil {
-		// 500
+		ctx.Logger.WithError(err).Error("Errore salvataggio messaggio nel DB")
 		http.Error(w, "Errore interno del server", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	// 201
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(sentMessage)
 }

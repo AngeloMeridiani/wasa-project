@@ -189,7 +189,11 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 			m.content_type,
 			m.photo_url,
 			m.created_at as msg_created_at,
-			m.updated_at as msg_updated_at
+			m.updated_at as msg_updated_at,
+			(SELECT COUNT(*) FROM messages m_ur 
+			 WHERE m_ur.chat_id = c.chat_id 
+			 AND m_ur.sender_id != ? 
+			 AND m_ur.state != 'read') as unread_count
 		FROM chats c
 		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
 		LEFT JOIN groups g ON c.chat_id = g.chat_id AND c.type = 'group'
@@ -211,7 +215,7 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 		ORDER BY c.modified_at DESC
 	`
 
-	rows, err := db.c.Query(query, userId, userId, userId)
+	rows, err := db.c.Query(query, userId, userId, userId, userId)
 	if err != nil {
 		return nil, fmt.Errorf("errore nella query GetMyChats: %w", err)
 	}
@@ -225,15 +229,19 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 
 		var msgId, senderId, text, state, contentType, photoUrl sql.NullString
 		var msgCreatedAt, msgUpdatedAt sql.NullTime
+		var unreadCount int
 
 		err := rows.Scan(
 			&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &title, &groupId,
 			&msgId, &senderId, &text, &state, &contentType, &photoUrl, &msgCreatedAt, &msgUpdatedAt,
+			&unreadCount,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("errore nello scan della chat: %w", err)
 		}
 		
+		chat.UnreadCount = unreadCount
+
 		if groupId.Valid {
 			chat.GroupId = &groupId.String
 		}
