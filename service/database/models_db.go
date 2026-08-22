@@ -65,6 +65,7 @@ type Message struct {
 	State       MessageState `json:"state"`
 	ContentType ContentType  `json:"contentType"`
 	PhotoUrl    string       `json:"photoUrl,omitempty"`
+	ReplyTo     *string      `json:"replyTo,omitempty"`
 	CreatedAt   time.Time    `json:"createdAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
 	Comments    []Comment    `json:"comments,omitempty"`

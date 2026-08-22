@@ -30,6 +30,10 @@ export default {
         availableEmojis: {
             type: Array,
             default: () => []
+        },
+        replyingToMessageId: {
+            type: String,
+            default: null
         }
     },
     data() {
@@ -55,6 +59,7 @@ export default {
         send() {
             if (this.localMessage.trim()) {
                 this.$emit('send-message');
+                this.scrollToBottom();
             }
         },
         triggerGroupPhotoUpload() {
@@ -67,18 +72,6 @@ export default {
             }
             if (this.$refs.groupPhotoInput) {
                 this.$refs.groupPhotoInput.value = "";
-            }
-        },
-        triggerImageMessageUpload() {
-            this.$refs.imageMessageInput.click();
-        },
-        onImageMessageSelected(event) {
-            const file = event.target.files[0];
-            if (file) {
-                this.$emit('send-image-message', file);
-            }
-            if (this.$refs.imageMessageInput) {
-                this.$refs.imageMessageInput.value = "";
             }
         },
         triggerImageMessageUpload() {
@@ -144,14 +137,58 @@ export default {
         selectEmoji(messageId, emoji) {
             this.$emit('add-reaction', messageId, emoji);
             this.activeReactionMessageId = null;
+        },
+        getMessageTextById(messageId) {
+            const m = this.getMessageById(messageId);
+            if (!m) return 'Messaggio originale non trovato';
+            if (m.contentType === 'image') return '📷 Immagine';
+            return m.text.length > 50 ? m.text.substring(0, 50) + '...' : m.text;
+        },
+        getMessageById(messageId) {
+            if (!this.messages) return null;
+            return this.messages.find(msg => msg.messageId === messageId);
+        },
+        cancelReply() {
+            this.$emit('update:replyingToMessageId', null);
+        },
+        scrollToBottom() {
+            this.$nextTick(() => {
+                if (this.$refs.messagesArea) {
+                    this.$refs.messagesArea.scrollTop = this.$refs.messagesArea.scrollHeight;
+                }
+            });
         }
+    },
+    watch: {
+        messages: {
+            deep: true,
+            handler() {
+                const el = this.$refs.messagesArea;
+                if (!el) return;
+                
+                // Se non ci sono messaggi (chat vuota o in caricamento), scrolla giù
+                if (!this.messages || this.messages.length === 0) {
+                    this.scrollToBottom();
+                    return;
+                }
+
+                // Verifica se l'utente si trova vicino in fondo (tolleranza 100px)
+                const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+                
+                if (isAtBottom) {
+                    this.scrollToBottom();
+                }
+            }
+        }
+    },
+    mounted() {
+        this.scrollToBottom();
     }
 }
 </script>
 
 <template>
     <div class="chat-window-container">
-        <div class="chat-active">
             <!-- Header della Chat -->
             <div class="chat-header">
                 <div class="chat-header-info">
@@ -181,14 +218,28 @@ export default {
             </div>
             
             <!-- Area Messaggi -->
-            <div class="messages-area">
-                <div v-if="messages && messages.length" class="messages-list">
+            <div class="messages-area" ref="messagesArea">
+                <div v-if="!messages || messages.length === 0" class="empty-chat">
+                    Nessun messaggio in questa chat.
+                </div>
+                
+                <div v-else class="messages-list">
                     <div 
                         v-for="msg in messages" 
                         :key="msg.messageId" 
                         :class="['message-wrapper', msg.senderId === myUserId ? 'message-out' : 'message-in']"
                     >
                         <div class="message-bubble">
+                            
+                            <!-- Anteprima Risposta -->
+                            <div v-if="msg.replyTo" class="reply-preview-bubble">
+                                <div class="reply-preview-text">
+                                    <small>Risposta a:</small>
+                                    <img v-if="getMessageById(msg.replyTo)?.contentType === 'image'" :src="getMessageById(msg.replyTo).photoUrl" class="reply-preview-img-small" />
+                                    <div v-else>{{ getMessageTextById(msg.replyTo) }}</div>
+                                </div>
+                            </div>
+
                             <div v-if="msg.contentType === 'image'" class="message-image-container">
                                 <img :src="msg.photoUrl" alt="Immagine inviata" class="message-img" />
                             </div>
@@ -201,6 +252,9 @@ export default {
                                 <MessageStatus v-if="msg.senderId === myUserId" :status="msg.state" />
 
                                 <div class="message-actions">
+                                    <button @click="$emit('reply-message', msg.messageId)" class="msg-action-btn" title="Rispondi">
+                                        <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#corner-up-left"/></svg>
+                                    </button>
                                     <button @click="activeReactionMessageId = activeReactionMessageId === msg.messageId ? null : msg.messageId" class="msg-action-btn" title="Reagisci">
                                         <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#smile"/></svg>
                                     </button>
@@ -235,13 +289,20 @@ export default {
                         </div>
                     </div>
                 </div>
-                <div v-else class="empty-chat">
-                    Non è ancora stato inviato alcun messaggio in questa chat.
-                </div>
             </div>
 
-            <!-- Area Input -->
-            <div class="input-area">
+            <!-- Area Input Messaggio -->
+            <div class="chat-input-area">
+                <div v-if="replyingToMessageId" class="replying-banner">
+                    <div class="replying-text">
+                        <small>Stai rispondendo a:</small>
+                        <img v-if="getMessageById(replyingToMessageId)?.contentType === 'image'" :src="getMessageById(replyingToMessageId).photoUrl" class="reply-preview-img-small" />
+                        <div v-else>{{ getMessageTextById(replyingToMessageId) }}</div>
+                    </div>
+                    <button class="cancel-reply-btn" @click="cancelReply" title="Annulla">
+                        <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#x"/></svg>
+                    </button>
+                </div>
                 <div class="input-container">
                     <button class="attach-btn" title="Allega Immagine" @click="triggerImageMessageUpload">
                         <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#image"/></svg>
@@ -259,7 +320,6 @@ export default {
                     </button>
                 </div>
             </div>
-        </div>
     </div>
 </template>
 
@@ -269,14 +329,6 @@ export default {
     width: 100%;
     display: flex;
     flex-direction: column;
-}
-
-
-/* Chat attiva */
-.chat-active {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
 }
 
 /* Header */
@@ -354,7 +406,7 @@ export default {
     transition: background-color 0.2s, color 0.2s;
 }
 .action-btn:hover {
-    background-color: var(--color-bg-hover);
+    background-color: #F5F3ED;
     color: var(--color-primary);
 }
 .action-btn svg {
@@ -566,7 +618,8 @@ export default {
     gap: 8px;
     margin-top: 8px;
     padding: 8px;
-    background-color: var(--color-bg-app);
+    background-color: #222222; /* Sfondo scuro per contrasto */
+    color: white; /* Per i font emoji monocromatici (es. su Linux) */
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
 }
@@ -602,16 +655,78 @@ export default {
 }
 
 .reaction-badge:hover {
-    background-color: var(--color-bg-hover);
+    background-color: #F5F3ED;
 }
 
 .reaction-me {
-    background-color: var(--color-primary-light);
+    background-color: rgba(255, 126, 64, 0.1);
     border-color: var(--color-primary);
 }
 
 .reaction-emoji {
     font-size: 1rem;
+}
+
+/* Risposte (Reply) */
+.reply-preview-bubble {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-left: 3px solid var(--color-primary);
+    padding: 6px 10px;
+    margin-bottom: 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+}
+.message-out .reply-preview-bubble {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-left-color: white;
+    color: white;
+}
+.reply-preview-text small {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.replying-banner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: var(--color-bg-white);
+    border-bottom: 1px solid var(--color-border);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    margin-bottom: -10px;
+    z-index: 1;
+}
+.replying-text small {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+.replying-text div {
+    font-size: 0.9rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+.cancel-reply-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    padding: 4px;
+}
+.cancel-reply-btn:hover {
+    color: var(--color-error);
+}
+
+.reply-preview-img-small {
+    max-height: 50px;
+    max-width: 150px;
+    border-radius: 4px;
+    object-fit: cover;
 }
 
 .reaction-count {

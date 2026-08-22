@@ -28,9 +28,9 @@ type AppDatabase interface {
 	GetCurrentChat(chatId string, userId string, limit int) (*Chat, []Message, error)
 
 	// Messages
-	SendMessage(senderId string, chatId string, text string) (*Message, error)
-	SendImageMessage(senderId string, chatId string, photoUrl string) (*Message, error)
-	UpdateMessage(messageId string, text string, senderId string) (*Message, error)
+	SendMessage(senderId string, chatId string, text string, replyTo *string) (*Message, error)
+	SendImageMessage(senderId string, chatId string, photoUrl string, replyTo *string) (*Message, error)
+	UpdateMessage(messageId string, text string, userId string) (*Message, error)
 	DeleteMessage(messageId string, userId string) error
 	UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error)
 	ForwardMessage(messageId string, targetChatId string, userId string) (*Message, error)
@@ -101,6 +101,7 @@ func New(db *sql.DB) (AppDatabase, error) {
 			state TEXT DEFAULT 'sent',
 			content_type TEXT DEFAULT 'text',
 			photo_url TEXT,
+			reply_to TEXT,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME,
 			FOREIGN KEY(chat_id) REFERENCES chats(chat_id) ON DELETE CASCADE,

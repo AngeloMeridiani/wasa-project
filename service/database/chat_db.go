@@ -134,7 +134,7 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 	}
 	msgQuery := `
 		SELECT * FROM (
-			SELECT message_id, sender_id, text, state, content_type, COALESCE(photo_url, ''), created_at, updated_at
+			SELECT message_id, sender_id, text, state, content_type, COALESCE(photo_url, ''), reply_to, created_at, updated_at
 			FROM messages
 			WHERE chat_id = ?
 			ORDER BY created_at DESC
@@ -152,8 +152,9 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 	for rows.Next() {
 		var m Message
 		var dbState, dbContentType string
+		var replyTo sql.NullString
 		err := rows.Scan(
-			&m.MessageId, &m.SenderId, &m.Text, &dbState, &dbContentType, &m.PhotoUrl, &m.CreatedAt, &m.UpdatedAt,
+			&m.MessageId, &m.SenderId, &m.Text, &dbState, &dbContentType, &m.PhotoUrl, &replyTo, &m.CreatedAt, &m.UpdatedAt,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("errore scan messaggio: %w", err)
@@ -161,6 +162,9 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 		m.ChatId = chatId
 		m.State = MessageState(dbState)
 		m.ContentType = ContentType(dbContentType)
+		if replyTo.Valid {
+			m.ReplyTo = &replyTo.String
+		}
 		messages = append(messages, m)
 	}
 
@@ -269,13 +273,13 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 		if err != nil {
 			return nil, fmt.Errorf("errore nello scan della chat: %w", err)
 		}
-		
+
 		chat.UnreadCount = unreadCount
 
 		if groupId.Valid {
 			chat.GroupId = &groupId.String
 		}
-		
+
 		if title.Valid {
 			chat.Title = title.String
 		}

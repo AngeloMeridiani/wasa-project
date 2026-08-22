@@ -34,6 +34,12 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 			return
 		}
 
+		var replyToPtr *string
+		replyTo := r.FormValue("replyTo")
+		if replyTo != "" {
+			replyToPtr = &replyTo
+		}
+
 		file, header, err := r.FormFile("image")
 		if err != nil {
 			http.Error(w, "Immagine mancante", http.StatusBadRequest)
@@ -52,7 +58,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		if strings.Contains(header.Header.Get("Content-Type"), "png") {
 			ext = ".png"
 		}
-		
+
 		// Usiamo il timestamp per rendere il nome file univoco, o usiamo un ID
 		fileName := fmt.Sprintf("msg_%d%s", time.Now().UnixNano(), ext)
 		filePath := fmt.Sprintf("./images/media/%s", fileName)
@@ -65,13 +71,14 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 			return
 		}
 
-		sentMessage, err = rt.db.SendImageMessage(ctx.UserId, chatId, photoUrl)
+		sentMessage, err = rt.db.SendImageMessage(ctx.UserId, chatId, photoUrl, replyToPtr)
 
 	} else {
 		// Messaggio di Testo (JSON)
 		var body struct {
-			ChatId string `json:"chatId"`
-			Text   string `json:"text"`
+			ChatId  string  `json:"chatId"`
+			Text    string  `json:"text"`
+			ReplyTo *string `json:"replyTo"`
 		}
 
 		err = json.NewDecoder(r.Body).Decode(&body)
@@ -81,7 +88,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		}
 		defer r.Body.Close()
 
-		sentMessage, err = rt.db.SendMessage(ctx.UserId, body.ChatId, body.Text)
+		sentMessage, err = rt.db.SendMessage(ctx.UserId, body.ChatId, body.Text, body.ReplyTo)
 	}
 
 	if err != nil {

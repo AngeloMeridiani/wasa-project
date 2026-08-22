@@ -13,11 +13,11 @@ export default {
 			chats : null,
 			messages : null,
 			sentMessages : [],
-			numSentMessages: 0,
 			selectedChatId: null,
 			selectedChatTitle: '',
 			selectedGroupId: null,
 			newMessage: '',
+			replyingToMessageId: null,
 			forwardingMessageId: null,
 			availableEmojis: ['👍', '❤️', '💔', '😴', '😂', '😮', '😢', '🔥', '🤐'],
 			pollIntervalId: null,
@@ -113,6 +113,11 @@ export default {
 				this.errormsg = null;
 			}
 			try {
+				if (this.selectedChatId !== chatId) {
+					this.messages = null;
+					this.selectedChatId = chatId;
+					this.replyingToMessageId = null;
+				}
 				let response = await this.$axios.get(`/chats/${chatId}?limit=100`);
 				if (!response.data.messages) {
 					this.messages = [];
@@ -130,24 +135,27 @@ export default {
 			if (!silent) this.loading = false;
 		},
 		async sendMessage() {
-            if (!this.selectedChatId || !this.newMessage.trim()) return;
-            try {
-                const payload = {
-                    chatId: this.selectedChatId,
-                    text: this.newMessage
-                };
+			if (!this.selectedChatId || !this.newMessage.trim()) return;
+
+			this.errormsg = null;
+			try {
+				let payload = {
+					chatId: this.selectedChatId,
+					text: this.newMessage,
+				};
+				if (this.replyingToMessageId) {
+					payload.replyTo = this.replyingToMessageId;
+				}
 
                 let response = await this.$axios.post(`/messages`, payload);
                     
                 this.newMessage = '';
+				this.replyingToMessageId = null;
                 if (!this.messages) this.messages = [];
                 this.messages.push(response.data);
             } catch (e) {
-                this.errmsg = e.toString();
+                this.errormsg = e.toString();
             }
-			finally {
-				this.loading = false;
-			}
         },
 		async sendImageMessage(file) {
             if (!this.selectedChatId || !file) return;
@@ -155,6 +163,10 @@ export default {
 				let formData = new FormData();
 				formData.append('chatId', this.selectedChatId);
 				formData.append('image', file);
+				
+				if (this.replyingToMessageId) {
+					formData.append('replyTo', this.replyingToMessageId);
+				}
 
                 let response = await this.$axios.post(`/messages`, formData, {
 					headers: {
@@ -162,14 +174,12 @@ export default {
 					}
 				});
                     
+				this.replyingToMessageId = null;
                 if (!this.messages) this.messages = [];
                 this.messages.push(response.data);
             } catch (e) {
-                this.errmsg = e.toString();
+                this.errormsg = e.toString();
             }
-			finally {
-				this.loading = false;
-			}
 		},
 		forwardMessage(messageId) {
 			this.forwardingMessageId = messageId;
@@ -407,15 +417,6 @@ export default {
 				}
 			}
 		},
-		countSentMessages() {
-			this.erromsg = null;
-			try {
-				this.numSentMessages = this.sentMessages.length();
-			}
-			catch(e) {
-				this.erromsg = e.toString();
-			}
-		},
 		async updateMessageStatus() {
 			if (!this.sentMessages || this.sentMessages.length === 0) return;
 			
@@ -423,7 +424,6 @@ export default {
 			try {
 				const unreadIds = [...this.sentMessages];
 				this.sentMessages = [];
-				this.numSentMessages = 0;
 				
 				for (let mid of unreadIds) {
 					await this.$axios.put(`/messages/${mid}/status`, { status: "read" });
@@ -472,6 +472,7 @@ export default {
 					:groupId="selectedGroupId"
 					:availableEmojis="availableEmojis"
 					v-model:draftMessage="newMessage" 
+					v-model:replyingToMessageId="replyingToMessageId"
 					@send-message="sendMessage" 
 					@delete-message="deleteMessage" 
 					@forward-message="forwardMessage" 
@@ -481,6 +482,7 @@ export default {
 					@send-image-message="sendImageMessage"
 					@add-reaction="addReaction"
 					@remove-reaction="removeReaction"
+					@reply-message="replyingToMessageId = $event"
 					@close-chat="selectedChatId = null" 
 				/>
 			</div>

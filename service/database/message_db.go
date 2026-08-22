@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*Message, error) {
+func (db *appdbimpl) SendMessage(senderId string, chatId string, text string, replyTo *string) (*Message, error) {
 	now := time.Now()
 
 	message := Message{
@@ -17,6 +17,7 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*
 		Text:        text,
 		State:       StateSent,
 		ContentType: TypeText,
+		ReplyTo:     replyTo,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -28,9 +29,9 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*
 	defer tx.Rollback()
 
 	result, err := tx.Exec(`INSERT INTO messages 
-		(message_id, chat_id, sender_id, text, state, content_type ,photo_url, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		message.MessageId, message.ChatId, message.SenderId, message.Text, message.State, message.ContentType, message.PhotoUrl, now, now)
+		(message_id, chat_id, sender_id, text, state, content_type, photo_url, reply_to, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		message.MessageId, message.ChatId, message.SenderId, message.Text, message.State, message.ContentType, message.PhotoUrl, message.ReplyTo, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante la creazione del messaggio: %w", err)
 	}
@@ -59,7 +60,7 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string) (*
 	return &message, nil
 }
 
-func (db *appdbimpl) SendImageMessage(senderId string, chatId string, photoUrl string) (*Message, error) {
+func (db *appdbimpl) SendImageMessage(senderId string, chatId string, photoUrl string, replyTo *string) (*Message, error) {
 	now := time.Now()
 
 	message := Message{
@@ -70,6 +71,7 @@ func (db *appdbimpl) SendImageMessage(senderId string, chatId string, photoUrl s
 		State:       StateSent,
 		ContentType: TypeImage,
 		PhotoUrl:    photoUrl,
+		ReplyTo:     replyTo,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}
@@ -81,9 +83,9 @@ func (db *appdbimpl) SendImageMessage(senderId string, chatId string, photoUrl s
 	defer tx.Rollback()
 
 	result, err := tx.Exec(`INSERT INTO messages 
-		(message_id, chat_id, sender_id, text, state, content_type ,photo_url, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		message.MessageId, message.ChatId, message.SenderId, message.Text, message.State, message.ContentType, message.PhotoUrl, now, now)
+		(message_id, chat_id, sender_id, text, state, content_type, photo_url, reply_to, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		message.MessageId, message.ChatId, message.SenderId, message.Text, message.State, message.ContentType, message.PhotoUrl, message.ReplyTo, now, now)
 	if err != nil {
 		return nil, fmt.Errorf("Errore durante la creazione del messaggio: %w", err)
 	}
