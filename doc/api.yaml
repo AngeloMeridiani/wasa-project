@@ -497,6 +497,13 @@ paths:
                   example: "Ciao, come stai?"
                   minLength: 1
                   maxLength: 2000
+                replyTo:
+                  type: string
+                  description: Identificatore del messaggio a cui si sta rispondendo
+                  example: "msg0123456msg0123456"
+                  pattern: '^[a-zA-Z0-9]+$'
+                  minLength: 20
+                  maxLength: 20
       responses: 
         '201':
           description: Messaggio inviato con successo
@@ -741,10 +748,9 @@ paths:
               properties: 
                 emoji:
                   type: string
-                  description: L'emoji inviata come reazione
-                  example: "emoji_1234.jpg"
-                  pattern: '^[a-zA-Z0-9_]+\.(jpg|jpeg|png)$'
-                  minLength: 5
+                  description: L'emoji inviata come reazione (carattere unicode)
+                  example: "👍"
+                  minLength: 1
                   maxLength: 50
       responses:
         '201':  
@@ -1167,6 +1173,13 @@ components:
           type: string
           description: Identificatore dell'utente che ha inviato il messaggio
           example: "abcd012345abcd012345"
+          pattern: '^[a-zA-Z0-9]+$'
+          minLength: 20
+          maxLength: 20
+        replyTo:
+          type: string
+          description: Identificatore del messaggio a cui si sta rispondendo
+          example: "msg0123456msg0123456"
           pattern: '^[a-zA-Z0-9]+$'
           minLength: 20
           maxLength: 20
