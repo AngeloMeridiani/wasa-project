@@ -12,6 +12,14 @@ export default defineConfig(({command, mode, ssrBuild}) => {
 				'@': fileURLToPath(new URL('./src', import.meta.url))
 			}
 		},
+		server: {
+			proxy: {
+				'/images': {
+					target: 'http://localhost:3000',
+					changeOrigin: true
+				}
+			}
+		}
 	};
 	ret.define = {
 		// Do not modify this constant, it is used in the evaluation.

@@ -67,6 +67,7 @@ type Message struct {
 	PhotoUrl    string       `json:"photoUrl,omitempty"`
 	CreatedAt   time.Time    `json:"createdAt"`
 	UpdatedAt   time.Time    `json:"updatedAt"`
+	Comments    []Comment    `json:"comments,omitempty"`
 }
 
 type Comment struct {

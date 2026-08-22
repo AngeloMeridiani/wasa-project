@@ -226,6 +226,29 @@ export default {
 				this.loading = false;
 			}
 		},
+		async addReaction(messageId, emoji) {
+			try {
+				let response = await this.$axios.post(`/messages/${messageId}/comments`, { emoji: emoji });
+				let msg = this.messages.find(m => m.messageId === messageId);
+				if (msg) {
+					if (!msg.comments) msg.comments = [];
+					msg.comments.push(response.data);
+				}
+			} catch(e) {
+				this.errormsg = e.toString();
+			}
+		},
+		async removeReaction(messageId, commentId) {
+			try {
+				await this.$axios.delete(`/messages/${messageId}/comments/${commentId}`);
+				let msg = this.messages.find(m => m.messageId === messageId);
+				if (msg && msg.comments) {
+					msg.comments = msg.comments.filter(c => c.commentId !== commentId);
+				}
+			} catch(e) {
+				this.errormsg = e.toString();
+			}
+		},
 		async createGroup() {
 			if (!this.newGroupData.name || !this.newGroupData.name.trim()) {
 				this.errormsg = "Il nome del gruppo è obbligatorio";
@@ -447,6 +470,7 @@ export default {
 					:selectedChatId="selectedChatId" 
 					:chatTitle="selectedChatTitle" 
 					:groupId="selectedGroupId"
+					:availableEmojis="availableEmojis"
 					v-model:draftMessage="newMessage" 
 					@send-message="sendMessage" 
 					@delete-message="deleteMessage" 
@@ -455,6 +479,8 @@ export default {
 					@change-group-photo="updateGroupPhoto"
 					@add-user-to-group="isAddingUserToGroup = true"
 					@send-image-message="sendImageMessage"
+					@add-reaction="addReaction"
+					@remove-reaction="removeReaction"
 					@close-chat="selectedChatId = null" 
 				/>
 			</div>

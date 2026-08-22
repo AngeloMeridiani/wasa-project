@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -165,6 +166,35 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 
 	if err = rows.Err(); err != nil {
 		return nil, nil, err
+	}
+
+	if len(messages) > 0 {
+		var msgIds []interface{}
+		var placeholders []string
+		for i := range messages {
+			msgIds = append(msgIds, messages[i].MessageId)
+			placeholders = append(placeholders, "?")
+		}
+
+		commentQuery := fmt.Sprintf(`SELECT comment_id, message_id, sender_id, emoji, created_at FROM comments WHERE message_id IN (%s)`, strings.Join(placeholders, ","))
+		crows, cerr := db.c.Query(commentQuery, msgIds...)
+		if cerr == nil {
+			defer crows.Close()
+			commentsByMsg := make(map[string][]Comment)
+			for crows.Next() {
+				var c Comment
+				if err := crows.Scan(&c.CommentId, &c.MessageId, &c.SenderId, &c.Emoji, &c.CreatedAt); err == nil {
+					commentsByMsg[c.MessageId] = append(commentsByMsg[c.MessageId], c)
+				}
+			}
+			for i := range messages {
+				if cmds, ok := commentsByMsg[messages[i].MessageId]; ok {
+					messages[i].Comments = cmds
+				} else {
+					messages[i].Comments = []Comment{}
+				}
+			}
+		}
 	}
 
 	return &chat, messages, nil

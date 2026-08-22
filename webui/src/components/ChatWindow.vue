@@ -26,12 +26,16 @@ export default {
         groupId: {
             type: String,
             default: null
+        },
+        availableEmojis: {
+            type: Array,
+            default: () => []
         }
     },
     data() {
         return {
             myUserId: localStorage.getItem("token"),
-            apiBaseUrl: __API_URL__
+            activeReactionMessageId: null
         }
     },
     computed: {
@@ -108,10 +112,38 @@ export default {
                     return `${hours}:${minutes}`;
                 }
                 
+                
                 return `${day}/${month} ${hours}:${minutes}`;
             } catch (e) {
                 return dateStr.substring(11, 16); // fallback
             }
+        },
+        groupedReactions(comments) {
+            if (!comments || comments.length === 0) return [];
+            let groups = {};
+            comments.forEach(c => {
+                if (!groups[c.emoji]) {
+                    groups[c.emoji] = { emoji: c.emoji, count: 0, me: false, myCommentId: null };
+                }
+                groups[c.emoji].count++;
+                if (c.senderId === this.myUserId) {
+                    groups[c.emoji].me = true;
+                    groups[c.emoji].myCommentId = c.commentId;
+                }
+            });
+            return Object.values(groups).sort((a,b) => b.count - a.count);
+        },
+        handleReactionClick(messageId, group) {
+            if (group.me) {
+                this.$emit('remove-reaction', messageId, group.myCommentId);
+            } else {
+                this.$emit('add-reaction', messageId, group.emoji);
+            }
+            this.activeReactionMessageId = null;
+        },
+        selectEmoji(messageId, emoji) {
+            this.$emit('add-reaction', messageId, emoji);
+            this.activeReactionMessageId = null;
         }
     }
 }
@@ -158,7 +190,7 @@ export default {
                     >
                         <div class="message-bubble">
                             <div v-if="msg.contentType === 'image'" class="message-image-container">
-                                <img :src="apiBaseUrl + msg.photoUrl" alt="Immagine inviata" class="message-img" />
+                                <img :src="msg.photoUrl" alt="Immagine inviata" class="message-img" />
                             </div>
                             <div v-else class="message-text">
                                 {{ msg.text }}
@@ -169,12 +201,35 @@ export default {
                                 <MessageStatus v-if="msg.senderId === myUserId" :status="msg.state" />
 
                                 <div class="message-actions">
+                                    <button @click="activeReactionMessageId = activeReactionMessageId === msg.messageId ? null : msg.messageId" class="msg-action-btn" title="Reagisci">
+                                        <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#smile"/></svg>
+                                    </button>
                                     <button @click="$emit('forward-message', msg.messageId)" class="msg-action-btn" title="Inoltra">
                                         <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#corner-up-right"/></svg>
                                     </button>
                                     <button @click="$emit('delete-message', msg.messageId)" class="msg-action-btn delete-icon" title="Elimina">
                                         <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#trash-2"/></svg>
                                     </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Area Picker Emoji (visibile solo se attivata) -->
+                            <div v-if="activeReactionMessageId === msg.messageId" class="emoji-picker">
+                                <span v-for="emoji in availableEmojis" :key="emoji" @click="selectEmoji(msg.messageId, emoji)" class="emoji-option">
+                                    {{ emoji }}
+                                </span>
+                            </div>
+
+                            <!-- Area Reazioni Attive -->
+                            <div v-if="msg.comments && msg.comments.length > 0" class="reactions-container">
+                                <div 
+                                    v-for="group in groupedReactions(msg.comments)" 
+                                    :key="group.emoji" 
+                                    @click="handleReactionClick(msg.messageId, group)"
+                                    :class="['reaction-badge', { 'reaction-me': group.me }]"
+                                >
+                                    <span class="reaction-emoji">{{ group.emoji }}</span>
+                                    <span class="reaction-count" v-if="group.count > 1">{{ group.count }}</span>
                                 </div>
                             </div>
                         </div>
@@ -502,5 +557,65 @@ export default {
     max-height: 250px;
     border-radius: 8px;
     object-fit: cover;
+}
+
+/* Reazioni ed Emoji */
+.emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px;
+    background-color: var(--color-bg-app);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
+
+.emoji-option {
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.emoji-option:hover {
+    transform: scale(1.2);
+}
+
+.reactions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.reaction-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: var(--color-bg-app);
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+    transition: background-color 0.2s ease;
+}
+
+.reaction-badge:hover {
+    background-color: var(--color-bg-hover);
+}
+
+.reaction-me {
+    background-color: var(--color-primary-light);
+    border-color: var(--color-primary);
+}
+
+.reaction-emoji {
+    font-size: 1rem;
+}
+
+.reaction-count {
+    font-weight: 600;
+    color: var(--color-text-main);
 }
 </style>

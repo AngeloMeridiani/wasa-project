@@ -14,8 +14,7 @@ export default {
             loading: false,
             newPhotoUrl: "",
             photoUrl: "",
-            selectedFile: null,
-            apiBaseUrl: __API_URL__
+            selectedFile: null
         }
     },
     methods: {
@@ -118,7 +117,7 @@ export default {
             <h3> Nome utente: <strong>{{ username }}</strong> </h3>
             <h3> ID Utente: <strong>{{ userId }}</strong> </h3>
             <h3> Immagine profilo utente: </h3>
-            <img v-if="photoUrl" :src="apiBaseUrl + photoUrl">
+            <img v-if="photoUrl" :src="photoUrl">
         </div>
 
         <div class="change-name">
