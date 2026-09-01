@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -322,7 +323,7 @@ func (db *appdbimpl) DeleteChat(chatId string, userId string) error {
 	var chatType string
 	err := db.c.QueryRow("SELECT type FROM chats WHERE chat_id = ?", chatId).Scan(&chatType)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("chat non trovata")
 		}
 		return fmt.Errorf("errore ricerca chat: %w", err)

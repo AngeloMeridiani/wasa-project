@@ -29,7 +29,9 @@ func (db *appdbimpl) CreateGroup(groupName string, groupDescription string, phot
 	if err != nil {
 		return nil, fmt.Errorf("Errore avvio transazione: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	now := time.Now()
 	chatId := generateID()

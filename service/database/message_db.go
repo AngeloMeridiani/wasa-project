@@ -26,7 +26,9 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string, re
 	if err != nil {
 		return nil, fmt.Errorf("Errore avvio transazione: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	result, err := tx.Exec(`INSERT INTO messages 
 		(message_id, chat_id, sender_id, text, state, content_type, photo_url, reply_to, created_at, updated_at)
@@ -80,7 +82,9 @@ func (db *appdbimpl) SendImageMessage(senderId string, chatId string, photoUrl s
 	if err != nil {
 		return nil, fmt.Errorf("Errore avvio transazione: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	result, err := tx.Exec(`INSERT INTO messages 
 		(message_id, chat_id, sender_id, text, state, content_type, photo_url, reply_to, created_at, updated_at)
