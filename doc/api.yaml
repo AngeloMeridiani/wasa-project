@@ -88,7 +88,9 @@ paths:
           required: true
           schema:
             type: string
+            pattern: '^.*?$'
             minLength: 1
+            maxLength: 30
       responses:
         '200':
           description: Ricerca completata con successo
@@ -96,6 +98,9 @@ paths:
             application/json:
               schema:
                 type: array
+                description: Lista degli utenti trovati
+                minItems: 0
+                maxItems: 100
                 items:
                   $ref: '#/components/schemas/User'
         '400':
@@ -368,9 +373,15 @@ paths:
                         chatId:
                           type: string
                           description: Identificatore univoco della conversazione
+                          pattern: '^[a-zA-Z0-9]+$'
+                          minLength: 20
+                          maxLength: 20
                         title:
                           type: string
                           description: Titolo o argomento della conversazione (es. nome del gruppo o dell'altro utente)
+                          pattern: '^[\s\S]*$'
+                          minLength: 1
+                          maxLength: 50
                         lastMessage:
                           $ref: '#/components/schemas/Message'
         '400':
@@ -387,13 +398,13 @@ paths:
                 $ref: '#/components/schemas/Error'
           
   /chats/{chatId}:
+    parameters:
+      - $ref: '#/components/parameters/ChatId'
     delete:
       tags: ["Chats"]
       summary: Elimina una chat o abbandona un gruppo
       description: Nasconde una chat singola per l'utente, oppure permette di abbandonare un gruppo.
       operationId: deleteChat
-      parameters:
-        - $ref: '#/components/parameters/ChatId'
       responses:
         '204':
           description: Chat eliminata con successo
@@ -410,7 +421,6 @@ paths:
         Ritorna i dettagli e i messaggi della conversazione corrente.
       operationId: getConversation
       parameters:
-        - $ref: '#/components/parameters/ChatId'
         - name: limit
           in: query
           description: Numero massimo di messaggi da ritornare per questa chat
@@ -839,8 +849,13 @@ paths:
                 members:
                   type: array
                   description: Lista opzionale di ID degli utenti da aggiungere inizialmente al gruppo
+                  minItems: 0
+                  maxItems: 50
                   items:
                     type: string
+                    pattern: '^[a-zA-Z0-9]+$'
+                    minLength: 20
+                    maxLength: 20
       responses:
         '201':
           description: Gruppo creato con successo
@@ -1376,6 +1391,7 @@ components:
           type: string
           description: Messaggio descrittivo dell'errore
           example: "User not found"
+          pattern: '^[\s\S]*$'
           minLength: 1
           maxLength: 200
       required:
