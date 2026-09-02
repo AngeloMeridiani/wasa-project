@@ -62,14 +62,14 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string, re
 	return &message, nil
 }
 
-func (db *appdbimpl) SendImageMessage(senderId string, chatId string, photoUrl string, replyTo *string) (*Message, error) {
+func (db *appdbimpl) SendImageMessage(senderId string, chatId string, text string, photoUrl string, replyTo *string) (*Message, error) {
 	now := time.Now()
 
 	message := Message{
 		MessageId:   generateID(),
 		ChatId:      chatId,
 		SenderId:    senderId,
-		Text:        "", // empty text for image message
+		Text:        text,
 		State:       StateSent,
 		ContentType: TypeImage,
 		PhotoUrl:    photoUrl,

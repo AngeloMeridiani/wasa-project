@@ -164,6 +164,11 @@ export default {
 				formData.append('chatId', this.selectedChatId);
 				formData.append('image', file);
 				
+				if (this.newMessage.trim() !== '') {
+					formData.append('text', this.newMessage.trim());
+					this.newMessage = '';
+				}
+
 				if (this.replyingToMessageId) {
 					formData.append('replyTo', this.replyingToMessageId);
 				}

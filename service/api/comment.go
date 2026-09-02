@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"github.com/julienschmidt/httprouter"
@@ -25,6 +26,10 @@ func (rt *_router) createComment(w http.ResponseWriter, r *http.Request, ps http
 
 	newComment, err := rt.db.CreateComment(ctx.UserId, messageId, body.Emoji)
 	if err != nil {
+		if strings.Contains(err.Error(), "già reagito") {
+			http.Error(w, err.Error(), http.StatusConflict) // 409
+			return
+		}
 		// 500
 		http.Error(w, "Errore durante la creazione del commento", http.StatusInternalServerError)
 		return

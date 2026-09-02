@@ -17,6 +17,15 @@ func (db *appdbimpl) CreateComment(senderId string, messageId string, emoji stri
 		CreatedAt: now,
 	}
 
+	var exists bool
+	checkErr := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM comments WHERE message_id = ? AND sender_id = ?)", messageId, senderId).Scan(&exists)
+	if checkErr != nil {
+		return nil, fmt.Errorf("Errore nel controllo delle reazioni: %w", checkErr)
+	}
+	if exists {
+		return nil, errors.New("Hai già reagito a questo messaggio")
+	}
+
 	result, err := db.c.Exec(`INSERT INTO comments 
 		(comment_id, message_id, sender_id, emoji, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
 		comment.CommentId, comment.MessageId, comment.SenderId, comment.Emoji, now, now)

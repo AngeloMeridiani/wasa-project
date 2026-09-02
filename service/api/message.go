@@ -40,6 +40,8 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 			replyToPtr = &replyTo
 		}
 
+		text := r.FormValue("text")
+
 		file, header, err := r.FormFile("image")
 		if err != nil {
 			http.Error(w, "Immagine mancante", http.StatusBadRequest)
@@ -71,7 +73,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 			return
 		}
 
-		sentMessage, err = rt.db.SendImageMessage(ctx.UserId, chatId, photoUrl, replyToPtr)
+		sentMessage, err = rt.db.SendImageMessage(ctx.UserId, chatId, text, photoUrl, replyToPtr)
 
 	} else {
 		// Messaggio di Testo (JSON)
