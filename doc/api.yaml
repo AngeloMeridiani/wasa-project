@@ -760,6 +760,7 @@ paths:
                   type: string
                   description: L'emoji inviata come reazione (carattere unicode)
                   example: "👍"
+                  pattern: '^[\s\S]*$'
                   minLength: 1
                   maxLength: 50
       responses:
@@ -1141,12 +1142,14 @@ components:
           type: string
           description: Identificatore univoco dell'utente
           example: "abcd012345abcd012345"
+          pattern: '^[a-zA-Z0-9]+$'
           minLength: 20
           maxLength: 20
         name:
           type: string
           description: Nome pubblico dell'utente
           example: "Maria"
+          pattern: '^.*?$'
           minLength: 3
           maxLength: 25
         userPhoto:
@@ -1217,6 +1220,7 @@ components:
             text:
               type: string
               description: Testo del messaggio
+              pattern: '^[\s\S]*$'
               minLength: 1
               maxLength: 2000
         - title: Messaggio Immagine
