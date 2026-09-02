@@ -116,9 +116,10 @@ export default {
             let groups = {};
             comments.forEach(c => {
                 if (!groups[c.emoji]) {
-                    groups[c.emoji] = { emoji: c.emoji, count: 0, me: false, myCommentId: null };
+                    groups[c.emoji] = { emoji: c.emoji, count: 0, me: false, myCommentId: null, authors: [] };
                 }
                 groups[c.emoji].count++;
+                groups[c.emoji].authors.push(c.senderName || c.senderId);
                 if (c.senderId === this.myUserId) {
                     groups[c.emoji].me = true;
                     groups[c.emoji].myCommentId = c.commentId;
@@ -281,6 +282,7 @@ export default {
                                     :key="group.emoji" 
                                     @click="handleReactionClick(msg.messageId, group)"
                                     :class="['reaction-badge', { 'reaction-me': group.me }]"
+                                    :title="group.authors.join(', ')"
                                 >
                                     <span class="reaction-emoji">{{ group.emoji }}</span>
                                     <span class="reaction-count" v-if="group.count > 1">{{ group.count }}</span>

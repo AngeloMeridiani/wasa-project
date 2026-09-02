@@ -181,14 +181,18 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 			placeholders = append(placeholders, "?")
 		}
 
-		commentQuery := fmt.Sprintf(`SELECT comment_id, message_id, sender_id, emoji, created_at FROM comments WHERE message_id IN (%s)`, strings.Join(placeholders, ","))
+		commentQuery := fmt.Sprintf(`
+			SELECT c.comment_id, c.message_id, c.sender_id, c.emoji, c.created_at, u.name 
+			FROM comments c JOIN users u ON c.sender_id = u.identifier 
+			WHERE c.message_id IN (%s)
+		`, strings.Join(placeholders, ","))
 		crows, cerr := db.c.Query(commentQuery, msgIds...)
 		if cerr == nil {
 			defer crows.Close()
 			commentsByMsg := make(map[string][]Comment)
 			for crows.Next() {
 				var c Comment
-				if err := crows.Scan(&c.CommentId, &c.MessageId, &c.SenderId, &c.Emoji, &c.CreatedAt); err == nil {
+				if err := crows.Scan(&c.CommentId, &c.MessageId, &c.SenderId, &c.Emoji, &c.CreatedAt, &c.SenderName); err == nil {
 					commentsByMsg[c.MessageId] = append(commentsByMsg[c.MessageId], c)
 				}
 			}

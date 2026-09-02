@@ -11,6 +11,7 @@ import (
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/globaltime"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -62,7 +63,7 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		}
 
 		// Usiamo il timestamp per rendere il nome file univoco, o usiamo un ID
-		fileName := fmt.Sprintf("msg_%d%s", time.Now().UnixNano(), ext)
+		fileName := fmt.Sprintf("msg_%d%s", globaltime.Now().UnixNano(), ext)
 		filePath := fmt.Sprintf("./images/media/%s", fileName)
 		photoUrl := fmt.Sprintf("/images/media/%s", fileName)
 
@@ -186,7 +187,7 @@ func (rt *_router) updateMessageStatus(w http.ResponseWriter, r *http.Request, p
 	}
 	defer r.Body.Close()
 
-	updatedAt, err := rt.db.UpdateMessageStatus(messageId, database.MessageState(body.Status))
+	updatedAt, err := rt.db.UpdateMessageStatus(messageId, ctx.UserId, database.MessageState(body.Status))
 	if err != nil {
 		if strings.Contains(err.Error(), "messaggio non trovato") {
 			http.Error(w, "Messaggio non trovato", http.StatusNotFound)

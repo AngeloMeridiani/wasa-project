@@ -37,6 +37,13 @@ func (db *appdbimpl) CreateComment(senderId string, messageId string, emoji stri
 	if rows == 0 || err != nil {
 		return nil, errors.New("Riga del commento non creata")
 	}
+
+	var senderName string
+	err = db.c.QueryRow("SELECT name FROM users WHERE identifier = ?", senderId).Scan(&senderName)
+	if err == nil {
+		comment.SenderName = senderName
+	}
+
 	return &comment, nil
 }
 

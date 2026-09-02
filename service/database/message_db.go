@@ -169,7 +169,7 @@ func (db *appdbimpl) DeleteMessage(messageId string, userId string) error {
 	return nil
 }
 
-func (db *appdbimpl) UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error) {
+func (db *appdbimpl) UpdateMessageStatus(messageId string, userId string, newStatus MessageState) (time.Time, error) {
 	var currentStatus string
 	if newStatus != StateReceived && newStatus != StateRead {
 		return time.Time{}, fmt.Errorf("stato non valido: %s", newStatus)
@@ -183,29 +183,40 @@ func (db *appdbimpl) UpdateMessageStatus(messageId string, newStatus MessageStat
 		return time.Time{}, fmt.Errorf("errore lettura stato: %w", err)
 	}
 	curState := MessageState(currentStatus)
-	isValid := false
-	if curState == newStatus {
+	
+	if curState == StateRead {
 		return time.Now(), nil
-	}
-	switch curState {
-	case StateSent:
-		if newStatus == StateReceived || newStatus == StateRead {
-			isValid = true
-		}
-	case StateReceived:
-		if newStatus == StateRead {
-			isValid = true
-		}
-	case StateRead:
-		isValid = false
-	}
-
-	if !isValid {
-		return time.Time{}, fmt.Errorf("transizione di stato non valida: da %s a %s", curState, newStatus) // 400
 	}
 
 	now := time.Now()
-	_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", newStatus, now, messageId)
+
+	if newStatus == StateRead {
+		_, err = db.c.Exec("INSERT OR IGNORE INTO message_reads (message_id, user_id, read_at) VALUES (?, ?, ?)", messageId, userId, now)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("errore salvataggio read receipt: %w", err)
+		}
+
+		var readCount int
+		err = db.c.QueryRow("SELECT COUNT(*) FROM message_reads WHERE message_id = ?", messageId).Scan(&readCount)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("errore conteggio letture: %w", err)
+		}
+
+		var totalMembers int
+		err = db.c.QueryRow("SELECT COUNT(*) FROM chat_members WHERE chat_id = (SELECT chat_id FROM messages WHERE message_id = ?)", messageId).Scan(&totalMembers)
+		if err != nil {
+			return time.Time{}, fmt.Errorf("errore conteggio membri: %w", err)
+		}
+
+		if totalMembers > 1 && readCount >= (totalMembers - 1) {
+			_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", StateRead, now, messageId)
+		} else if curState == StateSent {
+			_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", StateReceived, now, messageId)
+		}
+	} else if newStatus == StateReceived && curState == StateSent {
+		_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", StateReceived, now, messageId)
+	}
+
 	if err != nil {
 		return time.Time{}, fmt.Errorf("errore aggiornamento stato: %w", err)
 	}

@@ -72,11 +72,12 @@ type Message struct {
 }
 
 type Comment struct {
-	CommentId string    `json:"commentId"`
-	MessageId string    `json:"messageId"`
-	SenderId  string    `json:"senderId"`
-	Emoji     string    `json:"emoji"`
-	CreatedAt time.Time `json:"createdAt"`
+	CommentId  string    `json:"commentId"`
+	MessageId  string    `json:"messageId"`
+	SenderId   string    `json:"senderId"`
+	SenderName string    `json:"senderName,omitempty"`
+	Emoji      string    `json:"emoji"`
+	CreatedAt  time.Time `json:"createdAt"`
 }
 
 type LoginRequest struct {

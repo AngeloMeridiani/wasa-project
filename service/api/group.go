@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
+	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/globaltime"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -128,7 +129,7 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	}
 	fileName := fmt.Sprintf("img_group_%s%s", groupId, ext)
 	filePath := fmt.Sprintf("./images/pfp/%s", fileName)
-	photoUrl := fmt.Sprintf("/images/pfp/%s", fileName)
+	photoUrl := fmt.Sprintf("/images/pfp/%s?t=%d", fileName, globaltime.Now().UnixNano())
 
 	// Scrivi i byte su disco
 	err = os.WriteFile(filePath, fileBytes, 0644)

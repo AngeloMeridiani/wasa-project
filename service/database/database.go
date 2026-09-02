@@ -32,7 +32,7 @@ type AppDatabase interface {
 	SendImageMessage(senderId string, chatId string, text string, photoUrl string, replyTo *string) (*Message, error)
 	UpdateMessage(messageId string, text string, userId string) (*Message, error)
 	DeleteMessage(messageId string, userId string) error
-	UpdateMessageStatus(messageId string, newStatus MessageState) (time.Time, error)
+	UpdateMessageStatus(messageId string, userId string, newStatus MessageState) (time.Time, error)
 	ForwardMessage(messageId string, targetChatId string, userId string) (*Message, error)
 
 	// Comments
@@ -144,7 +144,18 @@ func New(db *sql.DB) (AppDatabase, error) {
 			FOREIGN KEY(user_id) REFERENCES users(identifier)
 		);`
 
-	queries := []string{sqlUsers, sqlChats, sqlGroups, sqlMessages, sqlMembers, sqlComments, sqlDeletedChats}
+	// Tabella MESSAGE_READS
+	sqlMessageReads := `
+		CREATE TABLE IF NOT EXISTS message_reads (
+			message_id TEXT NOT NULL,
+			user_id TEXT NOT NULL,
+			read_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (message_id, user_id),
+			FOREIGN KEY(message_id) REFERENCES messages(message_id) ON DELETE CASCADE,
+			FOREIGN KEY(user_id) REFERENCES users(identifier) ON DELETE CASCADE
+		);`
+
+	queries := []string{sqlUsers, sqlChats, sqlGroups, sqlMessages, sqlMembers, sqlComments, sqlDeletedChats, sqlMessageReads}
 
 	for _, q := range queries {
 		if _, err := db.Exec(q); err != nil {
