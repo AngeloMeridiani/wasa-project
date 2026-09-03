@@ -183,7 +183,7 @@ func (db *appdbimpl) UpdateMessageStatus(messageId string, userId string, newSta
 		return time.Time{}, fmt.Errorf("errore lettura stato: %w", err)
 	}
 	curState := MessageState(currentStatus)
-	
+
 	if curState == StateRead {
 		return time.Now(), nil
 	}
@@ -208,7 +208,7 @@ func (db *appdbimpl) UpdateMessageStatus(messageId string, userId string, newSta
 			return time.Time{}, fmt.Errorf("errore conteggio membri: %w", err)
 		}
 
-		if totalMembers > 1 && readCount >= (totalMembers - 1) {
+		if totalMembers > 1 && readCount >= (totalMembers-1) {
 			_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", StateRead, now, messageId)
 		} else if curState == StateSent {
 			_, err = db.c.Exec("UPDATE messages SET state = ?, updated_at = ? WHERE message_id = ?", StateReceived, now, messageId)

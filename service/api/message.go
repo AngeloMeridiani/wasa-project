@@ -43,15 +43,15 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 
 		text := r.FormValue("text")
 
-		file, header, err := r.FormFile("image")
-		if err != nil {
+		file, header, formErr := r.FormFile("image")
+		if formErr != nil {
 			http.Error(w, "Immagine mancante", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
 
-		fileBytes, err := io.ReadAll(file)
-		if err != nil {
+		fileBytes, readErr := io.ReadAll(file)
+		if readErr != nil {
 			http.Error(w, "Errore lettura immagine", http.StatusBadRequest)
 			return
 		}
@@ -67,14 +67,20 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		filePath := fmt.Sprintf("./images/media/%s", fileName)
 		photoUrl := fmt.Sprintf("/images/media/%s", fileName)
 
-		err = os.WriteFile(filePath, fileBytes, 0644)
-		if err != nil {
-			ctx.Logger.WithError(err).Error("Errore durante il salvataggio dell'immagine del messaggio")
+		writeErr := os.WriteFile(filePath, fileBytes, 0644)
+		if writeErr != nil {
+			ctx.Logger.WithError(writeErr).Error("Errore durante il salvataggio dell'immagine del messaggio")
 			http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
 			return
 		}
 
-		sentMessage, err = rt.db.SendImageMessage(ctx.UserId, chatId, text, photoUrl, replyToPtr)
+		var sendErr error
+		sentMessage, sendErr = rt.db.SendImageMessage(ctx.UserId, chatId, text, photoUrl, replyToPtr)
+		if sendErr != nil {
+			ctx.Logger.WithError(sendErr).Error("Errore salvataggio messaggio immagine nel DB")
+			http.Error(w, "Errore interno del server", http.StatusInternalServerError)
+			return
+		}
 
 	} else {
 		// Messaggio di Testo (JSON)
