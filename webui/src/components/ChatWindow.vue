@@ -23,6 +23,10 @@ export default {
             type: String,
             default: ""
         },
+        chatPhotoUrl: {
+            type: String,
+            default: null
+        },
         groupId: {
             type: String,
             default: null
@@ -244,7 +248,7 @@ export default {
                             <div v-if="msg.contentType === 'image'" class="message-image-container">
                                 <img :src="msg.photoUrl" alt="Immagine inviata" class="message-img" />
                             </div>
-                            <div v-else class="message-text">
+                            <div v-if="msg.text" class="message-text" :style="msg.contentType === 'image' ? 'margin-top: 8px;' : ''">
                                 {{ msg.text }}
                             </div>
                             <div class="message-meta">
@@ -378,6 +382,12 @@ export default {
     align-items: center;
     justify-content: center;
     font-weight: 600;
+}
+.avatar-img-small {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
 }
 .chat-title-group {
     display: flex;
@@ -607,8 +617,8 @@ export default {
 }
 
 .message-img {
-    max-width: 100%;
-    max-height: 250px;
+    width: 250px;
+    height: 250px;
     border-radius: 8px;
     object-fit: cover;
 }
@@ -725,8 +735,8 @@ export default {
 }
 
 .reply-preview-img-small {
-    max-height: 50px;
-    max-width: 150px;
+    height: 50px;
+    width: 50px;
     border-radius: 4px;
     object-fit: cover;
 }

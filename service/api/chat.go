@@ -76,6 +76,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		ChatId     string             `json:"chatId"`
 		GroupId    *string            `json:"groupId,omitempty"`
 		Title      string             `json:"title,omitempty"`
+		PhotoUrl   string             `json:"photoUrl,omitempty"`
 		CreatedAt  time.Time          `json:"createdAt"`
 		ModifiedAt time.Time          `json:"modifiedAt"`
 		Messages   []database.Message `json:"messages"`
@@ -83,6 +84,7 @@ func (rt *_router) getConversation(w http.ResponseWriter, r *http.Request, ps ht
 		ChatId:     chat.ChatId,
 		GroupId:    chat.GroupId,
 		Title:      chat.Title,
+		PhotoUrl:   chat.PhotoUrl,
 		CreatedAt:  chat.CreatedAt,
 		ModifiedAt: chat.ModifiedAt,
 		Messages:   messages,

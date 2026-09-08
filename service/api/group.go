@@ -53,6 +53,23 @@ func (rt *_router) createGroup(w http.ResponseWriter, r *http.Request, ps httpro
 	_ = json.NewEncoder(w).Encode(newGroup)
 }
 
+func (rt *_router) getGroup(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
+	groupId := ps.ByName("groupId")
+	group, err := rt.db.GetGroup(groupId)
+	if err != nil {
+		if strings.Contains(err.Error(), "gruppo non trovato") {
+			http.Error(w, "Gruppo non trovato", http.StatusNotFound)
+			return
+		}
+		http.Error(w, "Errore interno", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(group)
+}
+
 func (rt *_router) setGroupName(w http.ResponseWriter, r *http.Request, ps httprouter.Params, ctx reqcontext.RequestContext) {
 	groupId := ps.ByName("groupId")
 
@@ -130,6 +147,12 @@ func (rt *_router) setGroupPhoto(w http.ResponseWriter, r *http.Request, ps http
 	fileName := fmt.Sprintf("img_group_%s%s", groupId, ext)
 	filePath := fmt.Sprintf("./images/pfp/%s", fileName)
 	photoUrl := fmt.Sprintf("/images/pfp/%s?t=%d", fileName, globaltime.Now().UnixNano())
+
+	if err := os.MkdirAll("./images/pfp", 0755); err != nil {
+		ctx.Logger.WithError(err).Error("Errore durante la creazione della cartella immagini")
+		http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
+		return
+	}
 
 	// Scrivi i byte su disco
 	err = os.WriteFile(filePath, fileBytes, 0644)

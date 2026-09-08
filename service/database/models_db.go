@@ -44,6 +44,7 @@ type Chat struct {
 	ChatId      string    `json:"chatId"`
 	GroupId     *string   `json:"groupId,omitempty"`
 	Title       string    `json:"title,omitempty"`
+	PhotoUrl    string    `json:"photoUrl,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`
 	ModifiedAt  time.Time `json:"modifiedAt"`
 	UnreadCount int       `json:"unreadCount"`

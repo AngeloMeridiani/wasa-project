@@ -8,6 +8,15 @@ import (
 )
 
 func (db *appdbimpl) SendMessage(senderId string, chatId string, text string, replyTo *string) (*Message, error) {
+	checkUser := false
+	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?)", chatId, senderId).Scan(&checkUser)
+	if err != nil {
+		return nil, err
+	}
+	if !checkUser {
+		return nil, errors.New("L'utente non fa parte della chat")
+	}
+
 	now := time.Now()
 
 	message := Message{
@@ -63,6 +72,15 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string, re
 }
 
 func (db *appdbimpl) SendImageMessage(senderId string, chatId string, text string, photoUrl string, replyTo *string) (*Message, error) {
+	checkUser := false
+	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?)", chatId, senderId).Scan(&checkUser)
+	if err != nil {
+		return nil, err
+	}
+	if !checkUser {
+		return nil, errors.New("L'utente non fa parte della chat")
+	}
+
 	now := time.Now()
 
 	message := Message{
@@ -158,7 +176,7 @@ func (db *appdbimpl) DeleteMessage(messageId string, userId string) error {
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("Errore durante la cancellazione del messaggio; %w", err)
+		return fmt.Errorf("Errore durante la cancellazione del messaggio: %w", err)
 	}
 
 	// 404
@@ -253,7 +271,14 @@ func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, sende
 	newMessage.ContentType = ContentType(contentType)
 	newMessage.CreatedAt = time.Now()
 	newMessage.UpdatedAt = time.Now()
-	newMessage.Text = text
+
+	// Add Forwarded marker
+	if text != "" {
+		newMessage.Text = "➡\uFE0F Inoltrato\n" + text
+	} else if photoUrl != "" {
+		newMessage.Text = "➡\uFE0F Inoltrato"
+	}
+
 	newMessage.PhotoUrl = photoUrl
 
 	_, err = db.c.Exec(`INSERT INTO messages 

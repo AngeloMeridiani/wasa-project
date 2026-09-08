@@ -82,8 +82,8 @@ func (db *appdbimpl) GetUser(userId string) (*User, error) {
 
 func (db *appdbimpl) SetMyPhoto(id string, photoUrl string) error {
 	length := len(photoUrl)
-	if length < 5 || length > 50 {
-		return errors.New("l'URL della foto deve essere tra 5 e 50 caratteri")
+	if length < 5 || length > 255 {
+		return errors.New("l'URL della foto deve essere tra 5 e 255 caratteri")
 	}
 	query := "UPDATE users SET photo_url = ? WHERE identifier = ?"
 

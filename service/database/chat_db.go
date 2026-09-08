@@ -113,6 +113,11 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 				WHEN u.name IS NOT NULL THEN u.name
 				ELSE 'Messaggi Salvati'
 			END as title,
+			CASE 
+				WHEN c.type = 'group' THEN COALESCE(g.photo_url, '')
+				WHEN u.photo_url IS NOT NULL THEN u.photo_url
+				ELSE ''
+			END as photo_url,
 			g.group_id
 		FROM chats c
 		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
@@ -124,14 +129,18 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 
 	var chat Chat
 	var groupId sql.NullString
+	var photoUrl sql.NullString
 	err := db.c.QueryRow(chatQuery, userId, userId, chatId).Scan(
-		&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &chat.Title, &groupId,
+		&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &chat.Title, &photoUrl, &groupId,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("chat non trovata o non autorizzato: %w", err)
 	}
 	if groupId.Valid {
 		chat.GroupId = &groupId.String
+	}
+	if photoUrl.Valid {
+		chat.PhotoUrl = photoUrl.String
 	}
 	msgQuery := `
 		SELECT * FROM (
@@ -220,13 +229,18 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 				WHEN u.name IS NOT NULL THEN u.name
 				ELSE 'Messaggi Salvati'
 			END as title,
+			CASE 
+				WHEN c.type = 'group' THEN COALESCE(g.photo_url, '')
+				WHEN u.photo_url IS NOT NULL THEN u.photo_url
+				ELSE ''
+			END as photo_url,
 			g.group_id,
 			m.message_id,
 			m.sender_id,
 			m.text,
 			m.state,
 			m.content_type,
-			m.photo_url,
+			m.photo_url as msg_photo_url,
 			m.created_at as msg_created_at,
 			m.updated_at as msg_updated_at,
 			(SELECT COUNT(*) FROM messages m_ur 
@@ -264,6 +278,7 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 	for rows.Next() {
 		var chat Chat
 		var title sql.NullString
+		var chatPhotoUrl sql.NullString
 		var groupId sql.NullString
 
 		var msgId, senderId, text, state, contentType, photoUrl sql.NullString
@@ -271,7 +286,7 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 		var unreadCount int
 
 		err := rows.Scan(
-			&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &title, &groupId,
+			&chat.ChatId, &chat.CreatedAt, &chat.ModifiedAt, &title, &chatPhotoUrl, &groupId,
 			&msgId, &senderId, &text, &state, &contentType, &photoUrl, &msgCreatedAt, &msgUpdatedAt,
 			&unreadCount,
 		)
@@ -287,6 +302,9 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 
 		if title.Valid {
 			chat.Title = title.String
+		}
+		if chatPhotoUrl.Valid {
+			chat.PhotoUrl = chatPhotoUrl.String
 		}
 
 		if msgId.Valid {
@@ -334,7 +352,12 @@ func (db *appdbimpl) DeleteChat(chatId string, userId string) error {
 	}
 
 	if chatType == "group" {
-		return db.LeaveGroup(chatId, userId)
+		var groupId string
+		err = db.c.QueryRow("SELECT group_id FROM groups WHERE chat_id = ?", chatId).Scan(&groupId)
+		if err != nil {
+			return fmt.Errorf("errore ricerca gruppo associato: %w", err)
+		}
+		return db.LeaveGroup(groupId, userId)
 	}
 
 	// For DMs, soft delete by inserting into deleted_chats

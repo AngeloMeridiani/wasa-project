@@ -41,6 +41,7 @@ func (rt *_router) Handler() http.Handler {
 
 	// Groups
 	rt.router.POST("/groups", rt.authWrap(rt.createGroup))
+	rt.router.GET("/groups/:groupId", rt.authWrap(rt.getGroup))
 	rt.router.PUT("/groups/:groupId/name", rt.authWrap(rt.setGroupName))
 	rt.router.PUT("/groups/:groupId/photo", rt.authWrap(rt.setGroupPhoto))
 	rt.router.POST("/groups/:groupId/members", rt.authWrap(rt.addToGroup))

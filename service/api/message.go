@@ -67,6 +67,12 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 		filePath := fmt.Sprintf("./images/media/%s", fileName)
 		photoUrl := fmt.Sprintf("/images/media/%s", fileName)
 
+		if err := os.MkdirAll("./images/media", 0755); err != nil {
+			ctx.Logger.WithError(err).Error("Errore durante la creazione della cartella immagini")
+			http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
+			return
+		}
+
 		writeErr := os.WriteFile(filePath, fileBytes, 0644)
 		if writeErr != nil {
 			ctx.Logger.WithError(writeErr).Error("Errore durante il salvataggio dell'immagine del messaggio")

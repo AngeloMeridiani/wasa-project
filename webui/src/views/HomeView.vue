@@ -15,6 +15,7 @@ export default {
 			sentMessages : [],
 			selectedChatId: null,
 			selectedChatTitle: '',
+			selectedChatPhotoUrl: null,
 			selectedGroupId: null,
 			newMessage: '',
 			replyingToMessageId: null,
@@ -32,7 +33,8 @@ export default {
 				description: '',
 				photoUrl: '',
 				selectedMembers: []
-			}
+			},
+			chatPhotos: {}
 		}
 	},
 	methods: {
@@ -43,7 +45,9 @@ export default {
 			}
 			try {
 				let response = await this.$axios.get("/chats");
-				this.chats = response.data.chats || [];
+				let newChats = response.data.chats || [];
+
+				this.chats = newChats;
 			} catch (e) {
 				if (!silent) this.errormsg = e.toString();
 			}
@@ -128,6 +132,7 @@ export default {
 				}
 				this.selectedChatId = chatId;
 				this.selectedChatTitle = response.data.title || '';
+				this.selectedChatPhotoUrl = response.data.photoUrl || null;
 				this.selectedGroupId = response.data.groupId || null;
 			} catch (e) {
 				if (!silent) this.errormsg = e.toString();
@@ -319,6 +324,9 @@ export default {
 						'Content-Type': file.type
 					}
 				});
+				if (this.selectedChatId) {
+					this.chatPhotos[this.selectedChatId] = undefined;
+				}
 				this.refresh();
 			}
 			catch(e) {
@@ -474,6 +482,7 @@ export default {
 					:messages="messages" 
 					:selectedChatId="selectedChatId" 
 					:chatTitle="selectedChatTitle" 
+					:chatPhotoUrl="selectedChatPhotoUrl"
 					:groupId="selectedGroupId"
 					:availableEmojis="availableEmojis"
 					v-model:draftMessage="newMessage" 

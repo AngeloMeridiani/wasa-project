@@ -104,6 +104,12 @@ func (rt *_router) setMyPhoto(w http.ResponseWriter, r *http.Request, ps httprou
 	filePath := fmt.Sprintf("./images/pfp/%s", fileName)
 	photoUrl := fmt.Sprintf("/images/pfp/%s?t=%d", fileName, globaltime.Now().UnixNano())
 
+	if err := os.MkdirAll("./images/pfp", 0755); err != nil {
+		ctx.Logger.WithError(err).Error("Errore durante la creazione della cartella immagini")
+		http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
+		return
+	}
+
 	// Scrivi i byte su disco
 	err = os.WriteFile(filePath, fileBytes, 0644)
 	if err != nil {

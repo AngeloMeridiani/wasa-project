@@ -48,11 +48,17 @@ export default {
                 >
                     <div class="chat-card-content">
                         <div class="chat-avatar">
-                            {{ (chat.title || chat.chatId).substring(0, 1).toUpperCase() }}
+                            <img v-if="chat.photoUrl" :src="chat.photoUrl" class="avatar-img" alt="Avatar" />
+                            <span v-else>{{ (chat.title || chat.chatId).substring(0, 1).toUpperCase() }}</span>
                         </div>
                         <div class="chat-info">
                             <h4 class="chat-name">{{ chat.title || chat.chatId }}</h4>
-                            <p v-if="chat.lastMessage && chat.lastMessage.contentType === 'image'" class="chat-last-msg italic"> Immagine </p>
+                            <div v-if="chat.lastMessage && chat.lastMessage.contentType === 'image'" class="chat-last-msg">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <img :src="chat.lastMessage.photoUrl" style="width: 20px; height: 20px; border-radius: 4px; object-fit: cover;" />
+                                    <span class="italic" style="color: var(--color-text-muted);">📷 Immagine <span v-if="chat.lastMessage.text" style="font-style: normal;"> - {{ chat.lastMessage.text }}</span></span>
+                                </div>
+                            </div>
                             <p v-else-if="chat.lastMessage" class="chat-last-msg">{{ chat.lastMessage.text }}</p>
                             <p v-else class="chat-last-msg italic">Nessun messaggio</p>
                         </div>
@@ -184,6 +190,12 @@ export default {
     font-weight: 600;
     font-size: 1.2rem;
     flex-shrink: 0;
+}
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
 }
 .chat-info {
     overflow: hidden;

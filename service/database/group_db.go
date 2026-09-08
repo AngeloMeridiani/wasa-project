@@ -101,7 +101,7 @@ func (db *appdbimpl) GetGroup(groupId string) (*Group, error) {
 	}
 	// Query Gruppo
 	var g Group
-	err = db.c.QueryRow(`SELECT group_id, chat_id, group_name, group_description, photo_url, created_at 
+	err = db.c.QueryRow(`SELECT group_id, chat_id, group_name, COALESCE(group_description, ''), COALESCE(photo_url, ''), created_at 
 		FROM groups WHERE group_id = ?`, groupId).Scan(&g.GroupId, &g.ChatId, &g.GroupName, &g.GroupDescription, &g.PhotoUrl, &g.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("errore lettura gruppo: %w", err)
@@ -174,8 +174,8 @@ func (db *appdbimpl) SetGroupName(groupId string, userId string, newName string)
 }
 
 func (db *appdbimpl) SetGroupPhoto(groupId string, userId string, photoUrl string) error {
-	if len(photoUrl) < 5 || len(photoUrl) > 50 {
-		return errors.New("La lunghezza dell'URL della foto deve essere tra i 5 e i 50 caratteri")
+	if len(photoUrl) < 5 || len(photoUrl) > 255 {
+		return errors.New("La lunghezza dell'URL della foto deve essere tra i 5 e i 255 caratteri")
 	}
 
 	// Controllo se l'utente è admin del gruppo
