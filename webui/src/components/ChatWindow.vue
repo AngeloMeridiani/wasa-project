@@ -201,8 +201,9 @@ export default {
                         <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#arrow-left"/></svg>
                     </button>
                     <div class="chat-avatar-small">
-                        {{ displayTitle.substring(0, 1).toUpperCase() }}
-                    </div>
+                            <img v-if="chatPhotoUrl" :src="chatPhotoUrl" class="avatar-img-small" alt="Photo" />
+                            <span v-else>{{ (chatTitle).substring(0, 1).toUpperCase() }}</span>
+                        </div>
                     <div class="chat-title-group">
                         <h3 class="chat-title">{{ displayTitle }}</h3>
                     </div>
@@ -244,7 +245,7 @@ export default {
                                     <div v-else>{{ getMessageTextById(msg.replyTo) }}</div>
                                 </div>
                             </div>
-
+                            <div v-if="displayTitle" class="sendUserName-container"> {{msg.senderId}} </div>
                             <div v-if="msg.contentType === 'image'" class="message-image-container">
                                 <img :src="msg.photoUrl" alt="Immagine inviata" class="message-img" />
                             </div>
@@ -431,6 +432,16 @@ export default {
 }
 
 /* Area Messaggi */
+.sendUserName-container {
+    font-weight: bold;
+    text-align: center;
+    margin-top: 2px;
+    padding: 5px;
+    background-color: #222222; /* Sfondo scuro per contrasto */
+    color: white;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+}
 .messages-area {
     flex-grow: 1;
     overflow-y: auto;
@@ -548,7 +559,7 @@ export default {
 }
 
 /* Area Input */
-.input-area {
+.chat-input-area {
     padding: 16px 24px;
     background-color: var(--color-bg-app);
     border-top: 1px solid var(--color-border);
