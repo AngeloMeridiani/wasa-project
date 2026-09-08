@@ -117,7 +117,7 @@ export default {
             <h3> Nome utente: <strong>{{ username }}</strong> </h3>
             <h3> ID Utente: <strong>{{ userId }}</strong> </h3>
             <h3> Immagine profilo utente: </h3>
-            <img v-if="photoUrl" :src="photoUrl">
+            <img v-if="photoUrl" :src="photoUrl" class="profile-image" alt="Immagine Profilo" />
         </div>
 
         <div class="change-name">
@@ -169,6 +169,7 @@ export default {
     height: 100%;
     overflow-y: auto;
     padding-bottom: 80px;
+    box-sizing: border-box;
 }
 
 .page-title {
@@ -186,5 +187,13 @@ export default {
     box-shadow: var(--shadow-sm);
     margin-bottom: 30px;
     border: 1px solid var(--color-border);
+}
+
+.profile-image {
+    width: 200px !important;
+    height: 200px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    margin-top: 15px;
 }
 </style>
