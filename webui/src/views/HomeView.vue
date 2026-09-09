@@ -330,6 +330,7 @@ export default {
 						'Content-Type': file.type
 					}
 				});
+				this.selectedChatPhotoUrl = response.data.photoUrl;
 				if (this.selectedChatId) {
 					this.chatPhotos[this.selectedChatId] = undefined;
 				}
@@ -671,11 +672,12 @@ export default {
 }
 
 .main-container {
-	flex-grow: 1;
-	background-color: var(--color-bg-chat);
-	display: flex;
-	flex-direction: column;
-	position: relative;
+    flex-grow: 1;
+    background-color: var(--color-bg-app);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: relative;
 }
 .global-error {
 	position: fixed;

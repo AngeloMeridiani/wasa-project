@@ -214,7 +214,7 @@ export default {
 </script>
 
 <template>
-    <div class="chat-window-container">
+    <div class="chat-window-container" style="min-width: 0;">
             <!-- Header della Chat -->
             <div class="chat-header">
                 <div class="chat-header-info">
@@ -225,7 +225,7 @@ export default {
                             <img v-if="chatPhotoUrl" :src="chatPhotoUrl" class="avatar-img-small" alt="Photo" />
                             <span v-else>{{ (chatTitle).substring(0, 1).toUpperCase() }}</span>
                         </div>
-                    <div class="chat-title-group">
+                        <div class="chat-title-group" style="min-width: 0; flex-grow: 1;">
                         <h3 class="chat-title">{{ displayTitle }}</h3>
                     </div>
                     <!-- Bottoni azioni gruppo, visibili solo se la chat è un gruppo (ha groupId) -->
@@ -380,7 +380,7 @@ export default {
     border: none;
     color: var(--color-text-main);
     cursor: pointer;
-    padding: 8px; /* Area cliccabile più ampia */
+    padding: 8px;
     margin-right: 4px;
     display: flex;
     align-items: center;
@@ -388,7 +388,7 @@ export default {
     border-radius: 50%;
 }
 .back-btn svg {
-    width: 28px; /* Ingrandisce l'icona */
+    width: 28px;
     height: 28px;
 }
 .back-btn:hover {
@@ -419,6 +419,9 @@ export default {
     margin: 0;
     font-size: 1.1rem;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Pulsanti Azione Gruppo */
@@ -458,7 +461,7 @@ export default {
     text-align: center;
     margin-top: 2px;
     padding: 5px;
-    background-color: #222222; /* Sfondo scuro per contrasto */
+    background-color: #222222;
     color: white;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
@@ -469,7 +472,6 @@ export default {
     padding: 24px;
     display: flex;
     flex-direction: column;
-    /* Un pattern di sfondo tenue opzionale per la chat */
     background-color: var(--color-bg-chat);
 }
 .messages-list {
@@ -662,8 +664,8 @@ export default {
     gap: 8px;
     margin-top: 8px;
     padding: 8px;
-    background-color: #222222; /* Sfondo scuro per contrasto */
-    color: white; /* Per i font emoji monocromatici (es. su Linux) */
+    background-color: #222222; 
+    color: white;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-border);
 }

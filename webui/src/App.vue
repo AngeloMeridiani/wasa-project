@@ -2,7 +2,29 @@
 	import { RouterLink, RouterView } from 'vue-router'
 </script>
 <script>
-	export default {}
+	export default {
+		mounted() {
+			if (window.visualViewport) {
+				window.visualViewport.addEventListener('resize', this.handleViewportResize);
+			}
+		},
+		beforeUnmount() {
+			if (window.visualViewport) {
+				window.visualViewport.removeEventListener('resize', this.handleViewportResize);
+			}
+		},
+		methods: {
+			handleViewportResize() {
+				// Forza il reset dello scroll del documento quando cambia la viewport (apertura/chiusura tastiera)
+				window.scrollTo(0, 0);
+				document.documentElement.style.setProperty(
+					'--app-height', 
+					`${window.visualViewport.height}px`
+				);
+			}
+		}
+	}
+	
 </script>
 
 <template>
@@ -23,11 +45,14 @@
 </template>
 
 <style>
-html, body, #app {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    padding: 0;
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100%; 
+}
+.app-wrapper {
+    flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 .top-navbar {
