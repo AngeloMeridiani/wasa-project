@@ -221,7 +221,7 @@ export default {
 			this.errormsg = null;
 			try {
 				const payload = {
-					targetChatId: targetChatId 
+					chatId: targetChatId
 				};
 				let response = await this.$axios.post(`/messages/${this.forwardingMessageId}/forward`, payload);
 				

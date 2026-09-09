@@ -317,6 +317,7 @@ export default {
                                 >
                                     <span class="reaction-emoji">{{ group.emoji }}</span>
                                     <span class="reaction-count" v-if="group.count > 1">{{ group.count }}</span>
+                                    <span class="reaction-authors" style="font-size: 0.65rem; margin-left: 5px; opacity: 0.8; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ group.authors.join(', ') }}</span>
                                 </div>
                             </div>
                         </div>
