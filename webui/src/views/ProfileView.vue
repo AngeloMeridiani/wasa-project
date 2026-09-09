@@ -111,7 +111,7 @@ export default {
     <div class="profile-view">
         <h1 class="page-title">Profilo Utente</h1>
         
-        <ErrorMsg v-if="errormsg" :msg="errormsg"></ErrorMsg>
+        <ErrorMsg v-if="errormsg" :msg="errormsg" @clear="errormsg = null"></ErrorMsg>
 
         <div class="user-informations">
             <h3> Nome utente: <strong>{{ username }}</strong> </h3>
