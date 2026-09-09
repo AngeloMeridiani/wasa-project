@@ -120,7 +120,7 @@ func (db *appdbimpl) GetCurrentChat(chatId string, userId string, limit int) (*C
 			END as photo_url,
 			g.group_id
 		FROM chats c
-		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
+		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ? AND cm1.role != 'left'
 		LEFT JOIN groups g ON c.chat_id = g.chat_id AND c.type = 'group'
 		LEFT JOIN chat_members cm2 ON c.chat_id = cm2.chat_id AND cm2.user_id != ? AND c.type = 'dm'
 		LEFT JOIN users u ON cm2.user_id = u.identifier
@@ -245,8 +245,9 @@ func (db *appdbimpl) GetMyChats(userId string) ([]Chat, error) {
 			m.updated_at as msg_updated_at,
 			(SELECT COUNT(*) FROM messages m_ur 
 			 WHERE m_ur.chat_id = c.chat_id 
-			 AND m_ur.sender_id != ? 
-			 AND m_ur.state != 'read') as unread_count
+			 AND m_ur.sender_id != ?
+			 AND m_ur.state != 'read'
+			 AND cm1.role != 'left') as unread_count
 		FROM chats c
 		JOIN chat_members cm1 ON c.chat_id = cm1.chat_id AND cm1.user_id = ?
 		LEFT JOIN groups g ON c.chat_id = g.chat_id AND c.type = 'group'
@@ -360,7 +361,6 @@ func (db *appdbimpl) DeleteChat(chatId string, userId string) error {
 		return db.LeaveGroup(groupId, userId)
 	}
 
-	// For DMs, soft delete by inserting into deleted_chats
 	_, err = db.c.Exec("INSERT OR IGNORE INTO deleted_chats (chat_id, user_id) VALUES (?, ?)", chatId, userId)
 	if err != nil {
 		return fmt.Errorf("errore eliminazione chat: %w", err)

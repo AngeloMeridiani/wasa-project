@@ -31,6 +31,10 @@ export default {
             type: String,
             default: null
         },
+        groupDescription: {
+            type: String,
+            default: ""
+        },
         availableEmojis: {
             type: Array,
             default: () => []
@@ -225,8 +229,9 @@ export default {
                             <img v-if="chatPhotoUrl" :src="chatPhotoUrl" class="avatar-img-small" alt="Photo" />
                             <span v-else>{{ (chatTitle).substring(0, 1).toUpperCase() }}</span>
                         </div>
-                        <div class="chat-title-group" style="min-width: 0; flex-grow: 1;">
-                        <h3 class="chat-title">{{ displayTitle }}</h3>
+                        <div class="chat-title-group" style="min-width: 0; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                            <h3 class="chat-title" style="margin: 0;">{{ displayTitle }}</h3>
+                            <span v-if="groupDescription" style="font-size: 0.75rem; color: var(--color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">{{ groupDescription }}</span>
                     </div>
                     <!-- Bottoni azioni gruppo, visibili solo se la chat è un gruppo (ha groupId) -->
                     <div v-if="groupId" class="group-actions ml-auto d-flex align-items-center">

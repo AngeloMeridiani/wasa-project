@@ -9,7 +9,7 @@ import (
 
 func (db *appdbimpl) SendMessage(senderId string, chatId string, text string, replyTo *string) (*Message, error) {
 	checkUser := false
-	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?)", chatId, senderId).Scan(&checkUser)
+	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ? AND role != 'left')", chatId, senderId).Scan(&checkUser)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (db *appdbimpl) SendMessage(senderId string, chatId string, text string, re
 
 func (db *appdbimpl) SendImageMessage(senderId string, chatId string, text string, photoUrl string, replyTo *string) (*Message, error) {
 	checkUser := false
-	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?)", chatId, senderId).Scan(&checkUser)
+	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ? AND role != 'left')", chatId, senderId).Scan(&checkUser)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +221,7 @@ func (db *appdbimpl) UpdateMessageStatus(messageId string, userId string, newSta
 		}
 
 		var totalMembers int
-		err = db.c.QueryRow("SELECT COUNT(*) FROM chat_members WHERE chat_id = (SELECT chat_id FROM messages WHERE message_id = ?)", messageId).Scan(&totalMembers)
+		err = db.c.QueryRow("SELECT COUNT(*) FROM chat_members WHERE chat_id = (SELECT chat_id FROM messages WHERE message_id = ?) AND role != 'left'", messageId).Scan(&totalMembers)
 		if err != nil {
 			return time.Time{}, fmt.Errorf("errore conteggio membri: %w", err)
 		}
@@ -243,7 +243,7 @@ func (db *appdbimpl) UpdateMessageStatus(messageId string, userId string, newSta
 
 func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, senderId string) (*Message, error) {
 	checkTargetUser := false
-	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ?)", targetChatId, senderId).Scan(&checkTargetUser)
+	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ? AND role != 'left')", targetChatId, senderId).Scan(&checkTargetUser)
 	if err != nil {
 		return nil, err
 	}

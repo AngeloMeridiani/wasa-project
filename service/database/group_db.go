@@ -241,13 +241,16 @@ func (db *appdbimpl) AddToGroup(groupId string, requesterId string, userId strin
 		return errors.New("chat del gruppo non trovata")
 	}
 
-	_, err = db.c.Exec("INSERT INTO chat_members (chat_id, user_id) VALUES (?, ?)", chatId, userId)
-	if err != nil {
-		// 409
-		// Se l'errore contiene "UNIQUE constraint", significa che la coppia esiste già
-		if strings.Contains(err.Error(), "UNIQUE") {
+	var currentRole string
+	err = db.c.QueryRow("SELECT role FROM chat_members WHERE chat_id = ? AND user_id = ?", chatId, userId).Scan(&currentRole)
+	if err == nil {
+		if currentRole != "left" {
 			return errors.New("l'utente è già membro del gruppo")
 		}
+	}
+
+	_, err = db.c.Exec("INSERT OR REPLACE INTO chat_members (chat_id, user_id, role) VALUES (?, ?, 'member')", chatId, userId)
+	if err != nil {
 		return fmt.Errorf("errore aggiunta membro: %w", err)
 	}
 	return nil
@@ -278,7 +281,7 @@ func (db *appdbimpl) LeaveGroup(groupId string, userId string) error {
 		return errors.New("chat del gruppo non trovata")
 	}
 
-	_, err = db.c.Exec("DELETE FROM chat_members WHERE chat_id = ? AND user_id = ?", chatId, userId)
+	_, err = db.c.Exec("UPDATE chat_members SET role = 'left' WHERE chat_id = ? AND user_id = ?", chatId, userId)
 	if err != nil {
 		return errors.New("Utente non trovato oppure gruppo inesistente")
 	}

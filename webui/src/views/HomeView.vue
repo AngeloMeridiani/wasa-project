@@ -17,6 +17,7 @@ export default {
 			selectedChatTitle: '',
 			selectedChatPhotoUrl: null,
 			selectedGroupId: null,
+			selectedGroupDescription: '',
 			newMessage: '',
 			replyingToMessageId: null,
 			forwardingMessageId: null,
@@ -99,7 +100,7 @@ export default {
 			try {
 				await this.$axios.delete(`/chats/${chatId}`);
 				
-				this.chats = this.chats.filter(c => c.chatId !== chatId);
+				await this.refresh(true);
 				
 				if (this.selectedChatId === chatId) {
 					this.selectedChatId = null;
@@ -134,8 +135,27 @@ export default {
 				this.selectedChatTitle = response.data.title || '';
 				this.selectedChatPhotoUrl = response.data.photoUrl || null;
 				this.selectedGroupId = response.data.groupId || null;
+				this.selectedGroupDescription = '';
+				if (this.selectedGroupId) {
+					try {
+						let groupResponse = await this.$axios.get(`/groups/${this.selectedGroupId}`);
+						this.selectedGroupDescription = groupResponse.data.groupDescription || '';
+					} catch (err) {
+						console.error("Errore nel recupero della descrizione del gruppo", err);
+					}
+				}
 			} catch (e) {
-				if (!silent) this.errormsg = e.toString();
+				if (!silent) {
+					if (e.response && (e.response.status === 404 || e.response.status === 403)) {
+						this.errormsg = "Non hai più accesso a questa chat o è stata eliminata.";
+						this.selectedChatId = null;
+						this.messages = null;
+					} else if (e.response && e.response.data) {
+						this.errormsg = typeof e.response.data === 'string' ? e.response.data : "Errore durante il caricamento della chat";
+					} else {
+						this.errormsg = e.toString();
+					}
+				}
 			}
 			if (!silent) this.loading = false;
 		},
@@ -495,6 +515,7 @@ export default {
 					:selectedChatId="selectedChatId" 
 					:chatTitle="selectedChatTitle" 
 					:chatPhotoUrl="selectedChatPhotoUrl"
+					:groupDescription="selectedGroupDescription"
 					:groupId="selectedGroupId"
 					:availableEmojis="availableEmojis"
 					v-model:draftMessage="newMessage" 
