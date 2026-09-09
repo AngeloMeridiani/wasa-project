@@ -43,7 +43,8 @@ export default {
     data() {
         return {
             myUserId: localStorage.getItem("token"),
-            activeReactionMessageId: null
+            activeReactionMessageId: null,
+            userNames: {}
         }
     },
     computed: {
@@ -60,6 +61,16 @@ export default {
         }
     },
     methods: {
+        getSenderName(senderId) {
+            if (senderId === this.myUserId) return 'Tu';
+            if (!this.groupId) return this.displayTitle;
+            
+            if (this.userNames[senderId] !== undefined) {
+                return this.userNames[senderId] || senderId;
+            }
+            
+            return senderId;
+        },
         send() {
             if (this.localMessage.trim()) {
                 this.$emit('send-message');
@@ -188,6 +199,16 @@ export default {
     },
     mounted() {
         this.scrollToBottom();
+        // Carica tutti gli utenti per popolare la mappa degli id ai nomi
+        this.$axios.get('/users').then(res => {
+            if (res.data) {
+                res.data.forEach(u => {
+                    this.userNames[u.userId] = u.name;
+                });
+            }
+        }).catch(e => {
+            console.error("Errore caricamento lista utenti", e);
+        });
     }
 }
 </script>
@@ -245,7 +266,7 @@ export default {
                                     <div v-else>{{ getMessageTextById(msg.replyTo) }}</div>
                                 </div>
                             </div>
-                            <div v-if="displayTitle" class="sendUserName-container"> {{msg.senderId}} </div>
+                            <div v-if="displayTitle" class="sendUserName-container"> {{ getSenderName(msg.senderId) }} </div>
                             <div v-if="msg.contentType === 'image'" class="message-image-container">
                                 <img :src="msg.photoUrl" alt="Immagine inviata" class="message-img" />
                             </div>
