@@ -266,7 +266,7 @@ export default {
                                     <div v-else>{{ getMessageTextById(msg.replyTo) }}</div>
                                 </div>
                             </div>
-                            <div v-if="displayTitle" class="sendUserName-container"> {{ getSenderName(msg.senderId) }} </div>
+                            <div v-if="groupId && msg.senderId !== myUserId" class="sendUserName-container"> {{ getSenderName(msg.senderId) }} </div>
                             <div v-if="msg.contentType === 'image'" class="message-image-container">
                                 <img :src="msg.photoUrl" alt="Immagine inviata" class="message-img" />
                             </div>

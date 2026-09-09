@@ -75,7 +75,7 @@
                 </button>
             </div>
             
-            <ErrorMsg v-if="errormsg" :msg="errormsg" class="login-error" />
+            <ErrorMsg v-if="errormsg" :msg="errormsg" @clear="errormsg = null" class="login-error" />
         </div>
     </div>
 </template>

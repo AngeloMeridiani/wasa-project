@@ -2,6 +2,27 @@
 export default {
     props: {
         msg: String // Riceve il messaggio dal componente padre
+    },
+    mounted() {
+        this.startTimer();
+    },
+    watch: {
+        msg() {
+            this.startTimer();
+        }
+    },
+    methods: {
+        startTimer() {
+            if (this.timeout) clearTimeout(this.timeout);
+            if (this.msg) {
+                this.timeout = setTimeout(() => {
+                    this.$emit('clear');
+                }, 5000);
+            }
+        }
+    },
+    unmounted() {
+        if (this.timeout) clearTimeout(this.timeout);
     }
 }
 </script>

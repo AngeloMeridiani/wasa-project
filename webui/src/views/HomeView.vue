@@ -255,7 +255,13 @@ export default {
 					msg.comments.push(response.data);
 				}
 			} catch(e) {
-				this.errormsg = e.toString();
+				if (e.response && e.response.status === 409) {
+					this.errormsg = "Non puoi inserire più di un'emoji per messaggio.";
+				} else if (e.response && e.response.data) {
+					this.errormsg = typeof e.response.data === 'string' ? e.response.data : "Errore durante l'aggiunta della reazione";
+				} else {
+					this.errormsg = e.toString();
+				}
 			}
 		},
 		async removeReaction(messageId, commentId) {
@@ -449,18 +455,23 @@ export default {
 		}
 	},
 	mounted() {
-		this.refresh();
-		this.pollIntervalId = setInterval(() => {
-			this.refresh(true);
-			if (this.selectedChatId) {
-				this.selectChat(this.selectedChatId, true);
-			}
-		}, 3000);
+    this.refresh();
+    const poll = async () => {
+        try {
+            await this.refresh(true);
+            if (this.selectedChatId) {
+                await this.selectChat(this.selectedChatId, true);
+            }
+        } catch (e) {
+            console.error('Polling error:', e);
+        } finally {
+            this.pollTimeoutId = setTimeout(poll, 3000);
+        }
+    };
+    this.pollTimeoutId = setTimeout(poll, 3000);
 	},
 	unmounted() {
-		if (this.pollIntervalId) {
-			clearInterval(this.pollIntervalId);
-		}
+		if (this.pollTimeoutId) clearTimeout(this.pollTimeoutId);
 	}
 }
 </script>
@@ -503,7 +514,7 @@ export default {
 		</div>
 	</LoadingSpinner>
 
-	<ErrorMsg v-if="errormsg" :msg="errormsg" class="global-error"></ErrorMsg>
+	<ErrorMsg v-if="errormsg" :msg="errormsg" @clear="errormsg = null" class="global-error"></ErrorMsg>
 		
 		<div v-if="forwardingMessageId" class="modal-overlay" @click.self="forwardingMessageId = null">
 			<div class="modal-content">
@@ -644,7 +655,7 @@ export default {
 <style scoped>
 .chat-layout {
 	display: flex;
-	height: calc(100vh - 60px);
+	height: calc(100dvh - 60px);
 	overflow: hidden;
 	width: 100%;
 }
