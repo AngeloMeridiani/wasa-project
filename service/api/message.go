@@ -162,7 +162,7 @@ func (rt *_router) forwardMessage(w http.ResponseWriter, r *http.Request, ps htt
 	messageId := ps.ByName("messageId")
 
 	var body struct {
-		TargetChatId string `json:"targetChatId"`
+		TargetChatId string `json:"chatId"`
 	}
 
 	err := json.NewDecoder(r.Body).Decode(&body)
