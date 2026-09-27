@@ -274,11 +274,11 @@ func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, sende
 	newMessage.UpdatedAt = time.Now()
 
 	// Add Forwarded marker
-	if !strings.HasPrefix(text, "➡\uFE0F Inoltrato") {
+	if !strings.HasPrefix(text, "➡\uFE0F Inoltrato:") {
 		if text != "" {
-			newMessage.Text = "➡\uFE0F Inoltrato\n" + text
+			newMessage.Text = "➡\uFE0F Inoltrato:\n" + text
 		} else if photoUrl != "" {
-			newMessage.Text = "➡\uFE0F Inoltrato"
+			newMessage.Text = "➡\uFE0F Inoltrato:"
 		}
 	} else {
 		newMessage.Text = text
