@@ -75,3 +75,35 @@ body {
 	border-color: var(--color-primary);
 	box-shadow: 0 0 0 3px rgba(255, 126, 64, 0.1);
 }
+
+/* Stili Modali Globali */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+}
+.modal-content {
+    background-color: var(--color-bg-white);
+    border-radius: var(--radius-lg);
+    width: 100%; max-width: 400px; max-height: 80vh;
+    display: flex; flex-direction: column;
+    box-shadow: var(--shadow-md);
+}
+.modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-border);
+    display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.close-btn {
+    background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; border-radius: 50%;
+}
+.close-btn:hover { background-color: var(--color-border); color: var(--color-text-main); }
+.modal-body { padding: 8px; overflow-y: auto; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid var(--color-border); }
+
+/* Classi Utility Globali */
+.form-group { margin-bottom: 12px; }
+.full-width { width: 100%; box-sizing: border-box; }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -243,7 +244,7 @@ func (db *appdbimpl) UpdateMessageStatus(messageId string, userId string, newSta
 
 func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, senderId string) (*Message, error) {
 	checkTargetUser := false
-	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ? AND role != 'left')", targetChatId, senderId).Scan(&checkTargetUser)
+	err := db.c.QueryRow("SELECT EXISTS(SELECT 1 FROM chat_members WHERE chat_id = ? AND user_id = ? AND COALESCE(role, 'member') != 'left')", targetChatId, senderId).Scan(&checkTargetUser)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +255,7 @@ func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, sende
 	var text string
 	var photoUrl string
 
-	err = db.c.QueryRow("SELECT text, content_type, COALESCE(photo_url, '') FROM messages WHERE message_id = ?", messageId).Scan(&text, &contentType, &photoUrl)
+	err = db.c.QueryRow("SELECT COALESCE(text, ''), COALESCE(content_type, 'text'), COALESCE(photo_url, '') FROM messages WHERE message_id = ?", messageId).Scan(&text, &contentType, &photoUrl)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, errors.New("messaggio originale non trovato")
 	}
@@ -273,10 +274,14 @@ func (db *appdbimpl) ForwardMessage(messageId string, targetChatId string, sende
 	newMessage.UpdatedAt = time.Now()
 
 	// Add Forwarded marker
-	if text != "" {
-		newMessage.Text = "➡\uFE0F Inoltrato\n" + text
-	} else if photoUrl != "" {
-		newMessage.Text = "➡\uFE0F Inoltrato"
+	if !strings.HasPrefix(text, "➡\uFE0F Inoltrato") {
+		if text != "" {
+			newMessage.Text = "➡\uFE0F Inoltrato\n" + text
+		} else if photoUrl != "" {
+			newMessage.Text = "➡\uFE0F Inoltrato"
+		}
+	} else {
+		newMessage.Text = text
 	}
 
 	newMessage.PhotoUrl = photoUrl

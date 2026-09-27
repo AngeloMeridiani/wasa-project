@@ -709,34 +709,6 @@ export default {
 	box-shadow: var(--shadow-md);
 }
 
-/* Stili Modale in-line */
-.modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background-color: rgba(0, 0, 0, 0.4);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 9999;
-}
-.modal-content {
-    background-color: var(--color-bg-white);
-    border-radius: var(--radius-lg);
-    width: 100%; max-width: 400px; max-height: 80vh;
-    display: flex; flex-direction: column;
-    box-shadow: var(--shadow-lg);
-}
-.modal-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--color-border);
-    display: flex; justify-content: space-between; align-items: center;
-}
-.modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 600; }
-.close-btn {
-    background: none; border: none; cursor: pointer; color: var(--color-text-muted); padding: 4px; border-radius: 50%;
-}
-.close-btn:hover { background-color: var(--color-border); color: var(--color-text-main); }
-.modal-body { padding: 8px; overflow-y: auto; }
-.no-chats { text-align: center; color: var(--color-text-muted); padding: 20px; }
-
 /* Lista chat semplificata */
 .simple-chats-list { display: flex; flex-direction: column; gap: 4px; }
 .simple-chat-item {
@@ -747,8 +719,6 @@ export default {
 
 /* Stili Modale Gruppo */
 .group-creation-body { padding: 16px 20px; }
-.form-group { margin-bottom: 12px; }
-.full-width { width: 100%; box-sizing: border-box; }
 .search-users-box { margin-bottom: 12px; }
 .users-list-scrollable { max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
 .user-selection-item { 
@@ -761,5 +731,4 @@ export default {
 .user-name { font-weight: 500; font-size: 0.95rem; }
 .user-id { font-size: 0.8rem; color: var(--color-text-muted); }
 .selected-count { text-align: center; font-size: 0.9rem; color: var(--color-primary); margin-top: 10px; font-weight: 500; }
-.modal-footer { padding: 12px 20px; border-top: 1px solid var(--color-border); }
 </style>
