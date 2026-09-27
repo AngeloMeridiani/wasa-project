@@ -1,6 +1,8 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +13,6 @@ import (
 
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/api/reqcontext"
 	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/database"
-	"git.sapienzaapps.it/fantasticcoffee/fantastic-coffee-decaffeinated/service/globaltime"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -62,8 +63,10 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 			ext = ".png"
 		}
 
-		// Usiamo il timestamp per rendere il nome file univoco, o usiamo un ID
-		fileName := fmt.Sprintf("msg_%d%s", globaltime.Now().UnixNano(), ext)
+		// Commento SHA-256
+		hash := sha256.Sum256(fileBytes)
+		hashString := hex.EncodeToString(hash[:])
+		fileName := fmt.Sprintf("%s%s", hashString, ext)
 		filePath := fmt.Sprintf("./images/media/%s", fileName)
 		photoUrl := fmt.Sprintf("/images/media/%s", fileName)
 
@@ -72,12 +75,14 @@ func (rt *_router) sendMessage(w http.ResponseWriter, r *http.Request, ps httpro
 			http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
 			return
 		}
-
-		writeErr := os.WriteFile(filePath, fileBytes, 0644)
-		if writeErr != nil {
-			ctx.Logger.WithError(writeErr).Error("Errore durante il salvataggio dell'immagine del messaggio")
-			http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
-			return
+		// Controlla se il file esiste già
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			writeErr := os.WriteFile(filePath, fileBytes, 0644)
+			if writeErr != nil {
+				ctx.Logger.WithError(writeErr).Error("Errore durante il salvataggio dell'immagine del messaggio")
+				http.Error(w, "Errore interno durante il salvataggio", http.StatusInternalServerError)
+				return
+			}
 		}
 
 		var sendErr error
