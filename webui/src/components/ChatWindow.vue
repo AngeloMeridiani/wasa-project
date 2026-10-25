@@ -161,8 +161,9 @@ export default {
         getMessageTextById(messageId) {
             const m = this.getMessageById(messageId);
             if (!m) return 'Messaggio originale non trovato';
-            if (m.contentType === 'image') return '📷 Immagine';
-            return m.text.length > 50 ? m.text.substring(0, 50) + '...' : m.text;
+            if (m.text && m.text.trim()) return m.text;
+            if (m.contentType === 'image') return m.photoUrl ? '' : '📷 Immagine';
+            return '';
         },
         getMessageById(messageId) {
             if (!this.messages) return null;
@@ -268,7 +269,7 @@ export default {
                                 <div class="reply-preview-text">
                                     <small>Risposta a:</small>
                                     <img v-if="getMessageById(msg.replyTo)?.contentType === 'image'" :src="getMessageById(msg.replyTo).photoUrl" class="reply-preview-img-small" />
-                                    <div v-else>{{ getMessageTextById(msg.replyTo) }}</div>
+                                    <div v-if="getMessageTextById(msg.replyTo)">{{ getMessageTextById(msg.replyTo) }}</div>
                                 </div>
                             </div>
                             <div v-if="groupId && msg.senderId !== myUserId" class="sendUserName-container"> {{ getSenderName(msg.senderId) }} </div>
@@ -331,7 +332,7 @@ export default {
                     <div class="replying-text">
                         <small>Stai rispondendo a:</small>
                         <img v-if="getMessageById(replyingToMessageId)?.contentType === 'image'" :src="getMessageById(replyingToMessageId).photoUrl" class="reply-preview-img-small" />
-                        <div v-else>{{ getMessageTextById(replyingToMessageId) }}</div>
+                        <div v-if="getMessageTextById(replyingToMessageId)">{{ getMessageTextById(replyingToMessageId) }}</div>
                     </div>
                     <button class="cancel-reply-btn" @click="cancelReply" title="Annulla">
                         <svg class="feather"><use href="/feather-sprite-v4.29.0.svg#x"/></svg>
