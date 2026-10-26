@@ -267,7 +267,7 @@ export default {
                             <!-- Anteprima Risposta -->
                             <div v-if="msg.replyTo" class="reply-preview-bubble">
                                 <div class="reply-preview-text">
-                                    <small>Risposta a:</small>
+                                    <small>Risposta a {{ getSenderName(getMessageById(msg.replyTo)?.senderId) }}<span v-if="getMessageById(msg.replyTo)?.createdAt"> ({{ formatMessageDate(getMessageById(msg.replyTo).createdAt) }})</span>:</small>
                                     <img v-if="getMessageById(msg.replyTo)?.contentType === 'image'" :src="getMessageById(msg.replyTo).photoUrl" class="reply-preview-img-small" />
                                     <div v-if="getMessageTextById(msg.replyTo)">{{ getMessageTextById(msg.replyTo) }}</div>
                                 </div>
@@ -330,7 +330,7 @@ export default {
             <div class="chat-input-area">
                 <div v-if="replyingToMessageId" class="replying-banner">
                     <div class="replying-text">
-                        <small>Stai rispondendo a:</small>
+                        <small>Stai rispondendo a {{ getSenderName(getMessageById(replyingToMessageId)?.senderId) }}<span v-if="getMessageById(replyingToMessageId)?.createdAt"> ({{ formatMessageDate(getMessageById(replyingToMessageId).createdAt) }})</span>:</small>
                         <img v-if="getMessageById(replyingToMessageId)?.contentType === 'image'" :src="getMessageById(replyingToMessageId).photoUrl" class="reply-preview-img-small" />
                         <div v-if="getMessageTextById(replyingToMessageId)">{{ getMessageTextById(replyingToMessageId) }}</div>
                     </div>
